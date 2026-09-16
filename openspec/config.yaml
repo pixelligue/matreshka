@@ -1,0 +1,53 @@
+schema: spec-driven
+
+context: |
+  Product: Matreshka — a desktop coding-agent app (Codex analog).
+  This repository is a fork of DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness),
+  remotes: origin = pixelligue/matreshka, upstream = deepseek-ai/deepseek-harness.
+  Upstream version at fork: 0.1.6-alpha.1 (branch master). MIT license.
+
+  What we keep from upstream:
+  - Plugin architecture (Cordis). Everything is a plugin.
+  - Agent loop, tools, skills, sessions, web UI, Electron desktop shell.
+  - Desktop app lives in apps/desktop (Electron) + apps/desktop-host (private Node host).
+  - Web UI in apps/web and packages/client. CLI in apps/cli.
+  - LLM layer in packages/llm (provider-neutral service + deepseek-official + pi-ai adapters).
+
+  Product direction (do not implement until the user opens an OpenSpec change for it):
+  - Models must not be called as a local/direct provider from the desktop app.
+  - The app will talk to models through our backend. Backend tasks will be specified separately.
+  - Until that change exists, do not rewrite providers, credentials, or routing.
+
+  Stack: TypeScript, pnpm workspaces, Cordis plugins, Electron desktop, Vitest.
+  Package manager: pnpm@11.7.0. Node: ^22.19.0 || >=24.0.0.
+  User language: Russian. Code, identifiers, comments, and OpenSpec artifacts: English, matching upstream.
+
+  Working rules:
+  - All product work goes through OpenSpec (propose → apply → archive).
+  - Prefer the smallest delta on the fork. Do not rebrand, rename packages, or restyle the UI unless a change says so.
+  - Do not boil the ocean: do not document or "spec" the entire upstream codebase.
+  - When changing LLM/network behavior, start from packages/llm and the desktop host transport, not a new parallel stack.
+  - Follow existing AGENTS.md / package README contracts in the area you touch.
+
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section
+    - Name the upstream seam being changed (package, app, or plugin)
+  specs:
+    - Spec only Matreshka deltas, not the whole DeepSeek Harness surface
+  design:
+    - Prefer extending existing plugins/adapters over new parallel runtimes
+    - Call out backend vs desktop ownership when a change touches models or auth
+  tasks:
+    - Break work into reviewable chunks
+    - Do not include backend implementation in a desktop-only change, or vice versa
+
+operations:
+  apply:
+    guidance:
+      - Stay inside the change's tasks; do not take opportunistic upstream cleanups
+      - Match surrounding package README / AGENTS.md contracts
+  archive:
+    guidance:
+      - Record what shipped vs what remains for backend or later desktop changes
