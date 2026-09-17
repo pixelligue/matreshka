@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { clientSourceRoot, findUiI18nViolations } from './verify-client-ui-i18n.ts'
+import { clientSourceRoot, findMissingRuDictionary, findUiI18nViolations } from './verify-client-ui-i18n.ts'
 
 function messages(source: string): string[] {
   return findUiI18nViolations('packages/client/ui-example/src/client/View.tsx', source)
@@ -61,6 +61,17 @@ describe('Client UI i18n source check', () => {
       'packages/client/ui-example/src/client/locales.ts',
       'export const en = { title: "Hard-coded by design" }',
     )).toEqual([])
+  })
+
+  it('requires a ru export beside en in combined locale dictionaries', () => {
+    expect(findMissingRuDictionary(
+      'packages/client/ui-example/src/client/locales.ts',
+      'export const en = { title: "Hello" }',
+    )?.reason).toBe('locale dictionary missing ru export')
+    expect(findMissingRuDictionary(
+      'packages/client/ui-example/src/client/locales.ts',
+      'export const en = { title: "Hello" }\nexport const ru = { title: "Привет" }',
+    )).toBeUndefined()
   })
 
   it('rejects Electron dialog, title, prompt, and DOM copy outside locale owners', () => {

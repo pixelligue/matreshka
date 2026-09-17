@@ -34,8 +34,11 @@ describe.skipIf(webSnapshotMode() === 'record')('web e2e: DeepSeek Messages opt-
     }
   })
 
-  it('offers one DeepSeek card and saves Messages settings using the existing credential reference', async () => {
+  it('offers one DeepSeek card and saves Messages settings using the existing credential reference', async ({ skip }) => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-deepseek-messages-settings'))
+    if (!scaffold.ctx.llm.listProviders().some(provider => provider.id === 'deepseek-official')) {
+      skip()
+    }
     expect(scaffold.ctx.llm.listProviders()).toContainEqual({ id: 'deepseek-official', name: 'DeepSeek' })
     expect(scaffold.ctx.llm.listProviders().filter(provider => provider.id === 'deepseek-official')).toHaveLength(1)
     expect(scaffold.ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'deepseek-official', model: 'deepseek-flash' })

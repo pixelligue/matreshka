@@ -237,6 +237,28 @@ describe('ModelSelect reasoning effort', () => {
     }
   })
 
+  it('shows one Matrena option when that is the catalog', () => {
+    const directory = createSnapshotStore(state({
+      current: { provider: 'matreshka', model: 'matrena' },
+      groups: [{
+        id: 'matreshka',
+        name: 'Matreshka',
+        models: [{ id: 'matrena', name: 'Matrena' }],
+      }],
+    }))
+    render(<ModelSelect
+      locked={false}
+      available
+      directory={directory}
+      load={vi.fn()}
+      select={vi.fn().mockResolvedValue(true)}
+      t={t}
+    />)
+    fireEvent.click(screen.getByRole('button', { name: '选择模型，当前 Matrena' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
+    expect(screen.getAllByRole('menuitemradio').map(item => item.textContent)).toEqual(['Matrena'])
+  })
+
   it('renders no Agent-bound control for an addressed subagent session', () => {
     const load = vi.fn()
     render(<ModelSelect

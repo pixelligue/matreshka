@@ -5,6 +5,7 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import { chatNode } from './common.ts'
+import { internalRowVisibility } from '../transcript-policy.ts'
 
 declare module '../contract/chat-nodes.ts' {
   interface ChatNodeDataMap {
@@ -76,7 +77,13 @@ export function systemMessageDefinition(inspect: SystemPromptInspector): Convers
       if (state === undefined || state.text === ''
         || context.start?.event.type !== 'system/message' || context.start.event.surfaceOp !== 'append') return null
       const anchor = state.update ? state.seq : requestPromptAnchor(context.start, undefined, true)
-      return chatNode(context, 'system-prompt', anchor, { text: state.text, ...state.update ? { update: true } : {} })
+      return chatNode(
+        context,
+        'system-prompt',
+        anchor,
+        { text: state.text, ...state.update ? { update: true } : {} },
+        { visibility: internalRowVisibility() },
+      )
     },
   }
 }
@@ -136,6 +143,7 @@ export function requestPromptDefinition(inspect: RequestPromptInspector): Conver
       if (state === undefined) return null
       const current = context.current.get('chat') as ChatNode | null | undefined
       const visible = state.showsPrompt && state.prompt.system !== ''
+        && internalRowVisibility() === 'visible'
       if (!visible && current?.kind !== 'system-prompt') return null
       return chatNode(
         context,

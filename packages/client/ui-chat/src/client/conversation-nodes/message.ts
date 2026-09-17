@@ -5,6 +5,7 @@ import type {
 import { isAppendSurfaceEvent, isReplacementSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
 import type { InboxState } from './inbox.ts'
 import { chatNode } from './common.ts'
+import { internalRowVisibility } from '../transcript-policy.ts'
 import { contextForm, contextProducer } from './event-projection.ts'
 
 interface ReferencedUserMessageNode extends UserMessageNode {
@@ -85,7 +86,13 @@ export const messageDefinition: ConversationNodeDefinition<MessageNode> = {
   update: context => context.state,
   buildViewNode: (context) => {
     if (context.state === undefined) return null
-    return chatNode(context, context.state.kind, context.state.seq, context.state)
+    return chatNode(
+      context,
+      context.state.kind,
+      context.state.seq,
+      context.state,
+      context.state.kind === 'context' ? { visibility: internalRowVisibility() } : {},
+    )
   },
 }
 

@@ -21,6 +21,7 @@ const RELEASE_ENVIRONMENT = {
   APPLE_API_KEY_ID: 'TEST123456',
   APPLE_API_ISSUER: '11111111-2222-3333-4444-555555555555',
   DOWNLOAD_TEST_ORIGIN: 'https://desktop-updates.example.com',
+  MATRESHKA_API_ORIGIN: 'https://desktop-updates.example.com',
 }
 
 function portablePath(value: string): string {
@@ -69,7 +70,7 @@ describe('desktop macOS release signature', () => {
       },
       publish: [{
         provider: 'generic',
-        url: 'https://desktop-updates.example.com/_/harness/desktop/stable/mac-arm64/',
+        url: 'https://desktop-updates.example.com/v1/updates/desktop/mac-arm64/',
       }],
     })
     expect(typeof config.artifactBuildCompleted).toBe('function')

@@ -27,6 +27,18 @@ export const en = {
   retry: 'Retry',
 } satisfies Record<PdfLocaleKey, string>
 
+export const ru = {
+  title: 'PDF',
+  pageImage: 'PDF, страница {page}',
+  loading: 'Чтение…',
+  rendering: 'Отрисовка страницы…',
+  failed: 'Не удалось показать PDF: {message}',
+  password: 'Этому PDF нужен пароль; предпросмотр защищённых файлов не поддерживается.',
+  workerFailed: 'Процесс отрисовки PDF не смог продолжить. Повторите.',
+  unsupported: 'Предпросмотр PDF требует полного содержимого файла.',
+  retry: 'Повторить',
+} satisfies Record<PdfLocaleKey, string>
+
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** PDF page, loading, and failure messages. */

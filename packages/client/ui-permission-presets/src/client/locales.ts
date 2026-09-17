@@ -38,6 +38,21 @@ export const en = {
   'confirm.enable': 'Enable Full access',
 } satisfies Record<PermissionSettingsKey, string>
 
+export const ru = {
+  'title': 'Права',
+  'description': 'Выберите режим прав по умолчанию для новых сессий',
+  'loading': 'Загрузка',
+  'unavailable': 'Недоступно',
+  'preset.readOnly': 'Только чтение',
+  'preset.workspaceWrite': 'Запись в рабочей области',
+  'preset.fullAccess': 'Полный доступ',
+  'confirm.title': 'Включить полный доступ?',
+  'confirm.description': 'Полный доступ снижает число подтверждений и позволяет новым сессиям сразу выполнять больше действий, включая чувствительные операции, правки файлов и внешние команды. Включайте, только если доверяете следующим задачам.',
+  'confirm.acknowledge': 'Я понимаю риски и хочу продолжить',
+  'confirm.cancel': 'Отмена',
+  'confirm.enable': 'Включить полный доступ',
+} satisfies Record<PermissionSettingsKey, string>
+
 /** Simplified Chinese dictionary for the current-session popup gate. */
 export const accessZh = {
   'mode': '访问模式，当前：{name}',
@@ -81,4 +96,25 @@ export const accessEn = {
   'auto.confirm.description': 'Auto review runs without a sandbox. Before every native tool call and PTC inner call, the same model as the current agent reviews whether to allow it. This feature is experimental, can falsely allow or deny actions, and uses additional tokens.',
   'auto.confirm.acknowledge': 'I understand these risks and want to continue',
   'auto.confirm.enable': 'Enable Auto review',
+} satisfies Record<PermissionAccessKey, string>
+
+/** Russian dictionary for the current-session popup gate. */
+export const accessRu = {
+  'mode': 'Режим доступа, сейчас: {name}',
+  'close': 'Закрыть',
+  'preset.readOnly': 'Только чтение',
+  'preset.workspaceWrite': 'Запись в рабочей области',
+  'preset.fullAccess': 'Полный доступ',
+  'confirm.title': 'Включить полный доступ?',
+  'confirm.description': 'Полный доступ снижает число подтверждений и позволяет агенту сразу выполнять больше действий, включая чувствительные операции, правки файлов и внешние команды. Включайте, только если доверяете текущей задаче.',
+  'confirm.acknowledge': 'Я понимаю риски и хочу продолжить',
+  'confirm.cancel': 'Отмена',
+  'confirm.enable': 'Включить полный доступ',
+  'auto.label': 'Auto review',
+  'auto.badge': 'EXP',
+  'auto.description': 'Без песочницы: перед каждым нативным вызовом инструмента и внутренним вызовом PTC экспериментальная проверка той же моделью.',
+  'auto.confirm.title': 'Включить Auto review (эксперимент)?',
+  'auto.confirm.description': 'Auto review работает без песочницы. Перед каждым нативным вызовом инструмента и внутренним вызовом PTC та же модель, что и у текущего агента, решает, разрешать ли его. Функция экспериментальная: может ошибочно разрешить или отклонить действие и тратит дополнительные токены.',
+  'auto.confirm.acknowledge': 'Я понимаю эти риски и хочу продолжить',
+  'auto.confirm.enable': 'Включить Auto review',
 } satisfies Record<PermissionAccessKey, string>

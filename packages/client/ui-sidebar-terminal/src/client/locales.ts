@@ -40,3 +40,19 @@ export const en = {
   invalidOutput: 'The terminal screen could not be received. Reconnect to recover it.',
   terminalLimit: 'The terminal limit has been reached. Close unused terminals and try again. Exited terminals also count toward the limit.',
 } satisfies Record<keyof typeof zh, string>
+
+export const ru = {
+  recoveryFailed: 'Не удалось восстановить терминал: {message}', retryRecovery: 'Повторить восстановление терминала',
+  shell: 'Выберите Shell', shellLoading: 'Чтение Shell…', shellEmpty: 'Нет доступных Shell', description: 'Запускать команды в рабочей области сессии',
+  title: 'Терминал', new: 'Новый терминал', loading: 'Чтение среды терминала…', creating: 'Запуск…',
+  connecting: 'Подключение…', disconnected: 'Соединение разорвано.', reconnect: 'Подключить снова',
+  readonly: 'Этот вид сейчас только для чтения.', control: 'Перехватить ввод',
+  closed: 'Терминал закрыт.', exited: 'Процесс завершился ({code})', failed: 'Ошибка терминала: {message}',
+  rename: 'Имя терминала', unavailable: 'Недоступно', retry: 'Повторить',
+  cleanupFailed: 'Терминал «{title}» не удалось завершить: {message}',
+  missingTerminal: 'Этого терминала больше нет. Откройте новый.',
+  inputFull: 'Буфер ввода заполнен. Переподключитесь и повторите.',
+  attachmentEnded: 'Соединение с терминалом завершилось. Переподключитесь.',
+  invalidOutput: 'Не удалось получить экран терминала. Переподключитесь.',
+  terminalLimit: 'Достигнут лимит терминалов. Закройте ненужные и повторите. Завершённые терминалы тоже учитываются.',
+} satisfies Record<keyof typeof zh, string>

@@ -27,7 +27,7 @@ import {
 import { PermissionSelect } from '../src/client/PermissionSelect.tsx'
 import type { PermissionSelectInjected } from '../src/client/PermissionSelect.tsx'
 import { apply, inject } from '../src/client/index.ts'
-import { accessEn, accessZh } from '../src/client/locales.ts'
+import { accessEn, accessRu, accessZh } from '../src/client/locales.ts'
 
 const sid = (k: string): SessionId => k as SessionId
 
@@ -211,6 +211,18 @@ describe('ui-permission browser plugin', () => {
       acknowledgeLabel: 'I understand the risks and want to continue',
       cancelLabel: 'Cancel',
       confirmLabel: 'Enable Full access',
+    })
+    b.locale.setLocale('ru')
+    const russian = await b.popup().options(proj, new AbortController().signal)
+    expect(russian.map(option => option.label)).toEqual([
+      'Только чтение', 'Запись в рабочей области', 'Полный доступ', 'Auto review',
+    ])
+    expect(russian.find(option => option.id === 'danger-full-access')?.confirmation).toEqual({
+      title: accessRu['confirm.title'],
+      description: accessRu['confirm.description'],
+      acknowledgeLabel: accessRu['confirm.acknowledge'],
+      cancelLabel: accessRu['confirm.cancel'],
+      confirmLabel: accessRu['confirm.enable'],
     })
     expect(again.find(option => option.id === 'auto')).toMatchObject({
       badge: 'EXP',

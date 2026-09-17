@@ -579,6 +579,9 @@ describe('web e2e: settings modal and General preferences', () => {
     const selector = zhDialog.getByRole('button', { name: '中文' })
     expect(await selector.getAttribute('aria-haspopup')).toBe('menu')
     await selector.click()
+    expect(await page.getByRole('menuitem', { name: 'English' }).count()).toBe(1)
+    expect(await page.getByRole('menuitem', { name: 'Русский' }).count()).toBe(1)
+    expect(await page.getByRole('menuitem', { name: '中文' }).count()).toBe(0)
     await page.getByRole('menuitem', { name: 'English' }).click()
     // The settings-owned copy re-registers localized: dialog title, nav,
     // Appearance labels. (Only the settings namespaces are localized —
@@ -623,11 +626,11 @@ describe('web e2e: settings modal and General preferences', () => {
 
     await enTrigger.click()
     await page.getByRole('dialog', { name: 'Settings' }).getByRole('button', { name: 'English' }).click()
-    await page.getByRole('menuitem', { name: '中文' }).click()
-    await page.getByRole('dialog', { name: '设置' }).waitFor({ timeout: 10_000 })
+    await page.getByRole('menuitem', { name: 'Русский' }).click()
+    await page.getByRole('dialog', { name: 'Настройки' }).waitFor({ timeout: 10_000 })
     expect(await page.evaluate(() => localStorage.getItem('dsh.locale'))).toBeNull()
     await expect.poll(async () => readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8'), { timeout: 5_000 })
-      .toMatch(/locale:\n\s+preference: zh/)
+      .toMatch(/locale:\n\s+preference: ru/)
     await page.keyboard.press('Escape')
     expect(tripwire.pageErrors).toEqual([])
   }, 90_000)

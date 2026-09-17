@@ -1,0 +1,7 @@
+- dialog "登录 Matreshka":
+  - heading "登录 Matreshka" [level=1]
+  - text: 邮箱
+  - textbox "邮箱"
+  - text: 密码
+  - textbox "密码"
+  - button "登录"

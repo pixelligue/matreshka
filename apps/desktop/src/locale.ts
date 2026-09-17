@@ -1,4 +1,4 @@
-/** Typed English and Chinese copy owned by the Electron shell. */
+/** Typed English, Chinese, and Russian copy owned by the Electron shell. */
 
 export const en = {
   application: 'Application',
@@ -105,17 +105,69 @@ export const zh = {
   loadingPlugins: '正在读取桌面插件…',
 } as const satisfies DesktopMessages
 
+export const ru = {
+  application: 'Приложение',
+  startupFailed: 'Matreshka не удалось запустить',
+  startupLoading: 'Запуск Matreshka…',
+  startupLoadingDescription: 'Рабочая область откроется, когда всё будет готово.',
+  startupErrorDescription: 'Выберите действие восстановления ниже. Отключение сторонних плагинов сохраняет их файлы.',
+  startupReinstallAdvice: 'Если файлы приложения отсутствуют или повреждены, закройте его и установите заново. Задачи хранятся отдельно.',
+  startupConfigurationAdvice: 'Сброс Desktop удаляет всю конфигурацию профиля Desktop и сторонние плагины без резервной копии, затем запускает чистый профиль. Общие задачи и настройки сохраняются.',
+  restartApplication: 'Закрыть и перезапустить',
+  resetConfiguration: 'Сбросить Desktop и повторить',
+  disableThirdPartyPlugins: 'Отключить все сторонние плагины и повторить',
+  pluginsMenu: 'Плагины Desktop…',
+  pluginsMenuPackagedOnly: 'Плагины Desktop… (доступно в упакованном приложении)',
+  checkUpdatesMenu: 'Проверить обновления…',
+  updateCheckFailedTitle: 'Не удалось проверить обновления',
+  unknownError: 'Неизвестная ошибка',
+  updateCheckTitle: 'Проверка обновлений',
+  updateCurrent: 'У вас уже последняя версия.',
+  updateTitle: 'Обновление Matreshka',
+  updateAvailable: 'Доступно обновление',
+  updateDetail: 'Matreshka {version}\n\nЭтот выпуск включает соответствующую версию dsh. После установки приложение перезапустится.',
+  installAndRestart: 'Установить и перезапустить',
+  later: 'Позже',
+  updateFailedTitle: 'Обновление не удалось',
+  pluginManagerTitle: 'Плагины Desktop',
+  pluginWindowTitle: 'Matreshka — плагины Desktop',
+  pluginManagerDescription: 'Плагины ставятся только в node_modules Desktop и управляются встроенным pnpm.',
+  refresh: 'Обновить',
+  enable: 'Включить',
+  disable: 'Выключить',
+  disabled: 'Выключено',
+  retry: 'Повторить запуск',
+  disableAll: 'Отключить все плагины и повторить',
+  recoveryDescription: 'Бэкенд не запустился. Обновите или отключите несовместимые плагины и повторите. Установленные плагины и конфигурация сохраняются.',
+  changingActivation: 'Изменение включения плагина…',
+  npmPackage: 'пакет npm',
+  install: 'Установить',
+  installed: 'Установлено',
+  noPlugins: 'Плагины Desktop не установлены.',
+  remove: 'Удалить',
+  update: 'Обновить',
+  targetVersion: 'Введите целевую версию для {name}',
+  removing: 'Удаление {name}…',
+  updating: 'Обновление {name}…',
+  installing: 'Установка {spec}…',
+  operationComplete: 'Готово. Бэкенд Desktop перезапущен.',
+  refreshing: 'Обновление…',
+  refreshed: 'Список плагинов обновлён.',
+  loadingPlugins: 'Чтение плагинов Desktop…',
+} as const satisfies DesktopMessages
+
 /** Locale payload exposed to the Desktop-owned renderer. */
 export interface DesktopLocale {
-  readonly id: 'en' | 'zh-CN'
+  readonly id: 'en' | 'zh-CN' | 'ru'
   readonly messages: DesktopMessages
 }
 
 /** Resolve Electron's locale to one shipped Desktop dictionary. */
 export function resolveDesktopLocale(locale: string): DesktopLocale {
-  return locale.toLowerCase().startsWith('zh')
-    ? { id: 'zh-CN', messages: zh }
-    : { id: 'en', messages: en }
+  const normalized = locale.toLowerCase()
+  if (normalized.startsWith('zh')) return { id: 'zh-CN', messages: zh }
+  if (normalized.startsWith('ru')) return { id: 'ru', messages: ru }
+  return { id: 'en', messages: en }
 }
 
 /** Replace named placeholders in one locale-owned message. */

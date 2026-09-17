@@ -34,3 +34,18 @@ export const en = {
   'action.edit': 'Edit goal',
   'action.clear': 'Clear goal',
 } satisfies Record<GoalKey, string>
+
+export const ru = {
+  'phase.active': 'Цель выполняется',
+  'phase.active.disarmed': 'Цель не запущена',
+  'phase.paused': 'Цель на паузе',
+  'phase.blocked': 'Цель заблокирована',
+  'objective.aria': 'Содержание цели',
+  'commandInput.aria': 'Ввод команды',
+  'action.save': 'Сохранить цель',
+  'action.cancel': 'Отменить правку',
+  'action.pause': 'Приостановить цель',
+  'action.resume': 'Возобновить цель',
+  'action.edit': 'Изменить цель',
+  'action.clear': 'Очистить цель',
+} satisfies Record<GoalKey, string>

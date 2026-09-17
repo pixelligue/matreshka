@@ -106,14 +106,14 @@ pwsh -NoProfile -File apps/desktop/scripts/smoke-windows.ps1 -Electron $Electron
 
 ### Upload updates
 
-`DSH_DESKTOP_AUTO_UPDATE_ENV` selects `test` or `production` for both the URL embedded during packaging and the later COS upload; an absent value selects `test`. Test packaging requires its HTTPS origin in `DOWNLOAD_TEST_ORIGIN`, while the production origin remains `https://download.deepseek.com`. Upload additionally requires the selected deployment's COS bucket in `DOWNLOAD_TEST_COS_BUCKET` or `DOWNLOAD_PROD_COS_BUCKET`. The target path is `_/harness/desktop/stable/<target>/`, where `target` is `mac-arm64`, `mac-x64`, or `win-x64`.
+The packaged updater feed is `{MATRESHKA_API_ORIGIN}/v1/updates/desktop/<target>/`. `MATRESHKA_API_ORIGIN` defaults to `http://127.0.0.1:8016` (HTTP is allowed). `target` is `mac-arm64`, `mac-x64`, or `win-x64`. Operators copy a packaged target into the API with `matreshka-api publish-desktop` rather than COS.
 
-The update destination and upload credentials follow the selected deployment:
+`DSH_DESKTOP_AUTO_UPDATE_ENV` still selects COS credentials for the unused upload command (`test` or `production`; absent means `test`). Upload still requires `DOWNLOAD_TEST_COS_BUCKET` or `DOWNLOAD_PROD_COS_BUCKET`.
 
-| Environment | Public origin | COS bucket | COS credentials |
+| Environment | Feed origin | COS bucket | COS credentials |
 |---|---|---|---|
-| `test` or unset | `DOWNLOAD_TEST_ORIGIN` | `DOWNLOAD_TEST_COS_BUCKET` | `DOWNLOAD_TEST_COS_SECRET_ID`, `DOWNLOAD_TEST_COS_SECRET_KEY` |
-| `production` | `https://download.deepseek.com` | `DOWNLOAD_PROD_COS_BUCKET` | `DOWNLOAD_PROD_COS_SECRET_ID`, `DOWNLOAD_PROD_COS_SECRET_KEY` |
+| `test` or unset | `MATRESHKA_API_ORIGIN` or `http://127.0.0.1:8016` | `DOWNLOAD_TEST_COS_BUCKET` | `DOWNLOAD_TEST_COS_SECRET_ID`, `DOWNLOAD_TEST_COS_SECRET_KEY` |
+| `production` | `MATRESHKA_API_ORIGIN` or `http://127.0.0.1:8016` | `DOWNLOAD_PROD_COS_BUCKET` | `DOWNLOAD_PROD_COS_SECRET_ID`, `DOWNLOAD_PROD_COS_SECRET_KEY` |
 
 Package and upload one target under the same environment. For example, the default test deployment uses:
 

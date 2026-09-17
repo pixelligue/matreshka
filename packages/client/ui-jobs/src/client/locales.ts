@@ -42,4 +42,23 @@ export const en: Record<JobKey, string> = {
 }
 
 /** Key domain of the `job` namespace (zh is the source of truth). */
+
+export const ru: Record<JobKey, string> = {
+  'count.live.one': '{count} фоновая задача выполняется',
+  'count.live.other': '{count} фоновых задач выполняется',
+  'count.idle.one': '{count} фоновая задача',
+  'count.idle.other': '{count} фоновых задач',
+  'list.aria': 'Фоновые задачи',
+  'status.running': 'выполняется',
+  'status.stopping': 'остановка',
+  'status.completed': 'завершено',
+  'status.killed': 'отменено',
+  'status.failed': 'ошибка',
+  'duration.seconds': '{seconds}с',
+  'duration.minutes': '{minutes}м {seconds}с',
+  'duration.hours': '{hours}ч {minutes}м',
+  'duration.title.live': 'Выполняется {duration}',
+  'duration.title.done': 'Заняло {duration}',
+}
+
 export type JobKey = keyof typeof zh

@@ -57,3 +57,26 @@ export const en = {
   'error.generic': 'Could not save feedback',
   'error.noteTooLarge': 'The description is too long; shorten it and submit again',
 } satisfies Record<MessageFeedbackKey, string>
+
+export const ru = {
+  'action.like': 'Хороший ответ',
+  'action.likeActive': 'Снять оценку',
+  'action.dislike': 'Плохой ответ',
+  'action.dislikeActive': 'Снять оценку',
+  'dialog.title': 'Отправить отзыв',
+  'dialog.categories': 'Категория отзыва',
+  'dialog.detail': 'Подробности отзыва',
+  'dialog.hint': 'Добавьте подробности, чтобы мы улучшили продукт. Вместе с отзывом уйдёт журнал текущего диалога.',
+  'category.task-result': 'Результат задачи',
+  'category.instruction-following': 'Понимание и выполнение инструкций',
+  'category.product-interaction': 'Функции и взаимодействие',
+  'category.service-stability': 'Стабильность и скорость',
+  'category.resource-cost': 'Ресурсы и стоимость',
+  'category.security-privacy-permission': 'Безопасность, приватность и права',
+  'category.other': 'Другое',
+  'toast.recorded': 'Спасибо за отзыв',
+  'error.conflict': 'Этот отзыв изменили в другом месте; показана актуальная версия',
+  'error.load': 'Не удалось загрузить отзыв',
+  'error.generic': 'Не удалось сохранить отзыв',
+  'error.noteTooLarge': 'Описание слишком длинное; сократите и отправьте снова',
+} satisfies Record<MessageFeedbackKey, string>

@@ -16,7 +16,7 @@ import { AgentPresetSeat } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSeatProps } from '../src/client/AgentPresetSeat.tsx'
 import type { AgentPresetSettingsState } from '../src/client/settings-store.ts'
 import type { AgentPresetSeatState } from '../src/client/seat-store.ts'
-import { en } from '../src/client/locales.ts'
+import { en, ru } from '../src/client/locales.ts'
 
 afterEach(cleanup)
 
@@ -93,6 +93,20 @@ describe('the new-session chip', () => {
     await waitFor(() => { expect(actions.load).toHaveBeenCalledTimes(1) })
     expect(screen.getByRole('button').textContent).toContain(en.presetStandardName)
     expect(screen.getByRole('button').getAttribute('title')).toBe(en.seatHint)
+  })
+
+  it('renders Russian standard-mode copy instead of the English source string', async () => {
+    const store = createSnapshotStore<AgentPresetSeatState>(SEAT_READY)
+    render(<AgentPresetSeat {...({
+      load: vi.fn(() => Promise.resolve()),
+      select: vi.fn(() => Promise.resolve(undefined)),
+      introduced: vi.fn(),
+      useAgentPresetSeat: bindSnapshotSelector(store),
+      t: (key: keyof typeof ru) => ru[key],
+    } as unknown as AgentPresetSeatProps)} />)
+
+    await waitFor(() => { expect(screen.getByRole('button').textContent).toContain(ru.presetStandardName) })
+    expect(screen.queryByText('Standard mode')).toBeNull()
   })
 
   it('offers each preset with what it is for', () => {

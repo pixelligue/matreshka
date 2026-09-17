@@ -225,6 +225,11 @@ export interface Config {
    * and registers them the moment a settings section supplies profiles.
    */
   providers?: Record<string, PiAiProviderProfile>
+  /**
+   * When set, only these route keys register, including after a settings
+   * overlay adds other providers. Omission keeps every configured route.
+   */
+  allowlistProviders?: string[]
 }
 
 const thinkingBudgets = z.object({
@@ -347,6 +352,7 @@ const profile = z.object({
 /** Runtime schema for {@link Config}. */
 export const Config: z<Config> = z.object({
   providers: z.dict(profile).default({}),
+  allowlistProviders: z.array(z.string()),
 })
 
 /**
@@ -401,16 +407,19 @@ function assertValidHeaders(provider: string, headers: Readonly<Record<string, s
  * routes. An omitted dict resolves to the empty, dormant route set.
  * @param providers - configured provider profiles keyed by route.
  * @param validation - writes require a complete catalog; stored reads retain catalog diagnostics.
+ * @param allowlist - when set, drop every route whose key is not in this list.
  * @returns validated profiles in configuration order.
  */
 export function resolveProfiles(
   providers: Readonly<Record<string, PiAiProviderProfile>> | undefined,
   validation: 'strict' | 'deferred' = 'strict',
+  allowlist?: readonly string[],
 ): Map<string, ResolvedPiAiProviderProfile> {
   if (Array.isArray(providers)) {
     throw new Error('llm-pi-ai: providers is now a dict keyed by provider route, not an array of profiles')
   }
-  const entries = Object.entries(providers ?? {})
+  const allowed = allowlist === undefined ? undefined : new Set(allowlist)
+  const entries = Object.entries(providers ?? {}).filter(([provider]) => allowed === undefined || allowed.has(provider))
   const resolved = new Map<string, ResolvedPiAiProviderProfile>()
   for (const [provider, source] of entries) {
     rejectRemovedFields(provider, source)

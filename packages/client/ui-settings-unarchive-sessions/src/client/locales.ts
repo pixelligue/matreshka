@@ -40,3 +40,21 @@ export const en = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
 } satisfies Record<ArchivedSessionsLocaleKey, string>
+
+export const ru = {
+  nav: 'Архив сессий',
+  search: 'Поиск в архиве сессий',
+  loading: 'Чтение сессий…',
+  empty: 'Архивных сессий нет.',
+  unavailable: 'Здесь нет архивной сессии, которую можно восстановить.',
+  emptySearch: 'Нет подходящих сессий.',
+  unarchive: 'Разархивировать',
+  unarchiveNamed: 'Разархивировать {title}',
+  ungrouped: 'Без группы',
+  'time.now': 'сейчас',
+  'time.minutes': '{n} мин',
+  'time.hours': '{n} ч',
+  'time.days': '{n} д',
+  'time.months': '{n} мес',
+  'time.years': '{n} г',
+} satisfies Record<ArchivedSessionsLocaleKey, string>

@@ -20,3 +20,11 @@ export const en = {
   reject: 'Reject',
   allowOnce: 'Allow once',
 } satisfies Record<ApprovalKey, string>
+
+export const ru = {
+  waiting: 'Ожидает подтверждения',
+  'detail.aria': 'Сведения о подтверждении',
+  escalation: 'Инструмент {toolName} запрашивает привилегированное выполнение',
+  reject: 'Отклонить',
+  allowOnce: 'Разрешить один раз',
+} satisfies Record<ApprovalKey, string>

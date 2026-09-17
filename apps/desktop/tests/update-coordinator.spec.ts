@@ -47,9 +47,11 @@ describe('desktop update coordinator', () => {
     const downloadUpdate = vi.fn(async () => [])
     const quitAndInstall = vi.fn()
     const beforeRestart = vi.fn(async () => {})
+    const setFeedURL = vi.fn()
     const updater = {
       autoDownload: true,
       autoInstallOnAppQuit: true,
+      setFeedURL,
       checkForUpdates: vi.fn(async () => ({
         isUpdateAvailable: true,
         updateInfo: { version: '1.1.0' },
@@ -65,9 +67,14 @@ describe('desktop update coordinator', () => {
       beforeRestart,
       updater,
       () => true,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
     )
 
     await expect(coordinator.check()).resolves.toEqual({ phase: 'available', version: '1.1.0' })
+    expect(setFeedURL).toHaveBeenCalledWith({
+      provider: 'generic',
+      url: 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
+    })
     await expect(coordinator.install()).resolves.toEqual({ phase: 'ready', version: '1.1.0' })
     expect(downloadUpdate).toHaveBeenCalledOnce()
     expect(beforeRestart).toHaveBeenCalledOnce()
@@ -84,11 +91,18 @@ describe('desktop update coordinator', () => {
     const updater = {
       autoDownload: true,
       autoInstallOnAppQuit: true,
+      setFeedURL: vi.fn(),
       checkForUpdates: vi.fn(() => checked.promise),
       downloadUpdate,
       quitAndInstall: vi.fn(),
     } as unknown as AppUpdater
-    const coordinator = new DesktopUpdateCoordinator(state => state, async () => {}, updater, () => true)
+    const coordinator = new DesktopUpdateCoordinator(
+      state => state,
+      async () => {},
+      updater,
+      () => true,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
+    )
 
     const checking = coordinator.check()
     const installing = coordinator.install()
@@ -98,5 +112,53 @@ describe('desktop update coordinator', () => {
     await expect(checking).resolves.toEqual({ phase: 'available', version: '1.2.0' })
     await expect(installing).resolves.toEqual({ phase: 'ready', version: '1.2.0' })
     expect(downloadUpdate).toHaveBeenCalledOnce()
+  })
+
+  it('does not query a feed when unpackaged', async () => {
+    const checkForUpdates = vi.fn()
+    const setFeedURL = vi.fn()
+    const updater = {
+      autoDownload: true,
+      autoInstallOnAppQuit: true,
+      setFeedURL,
+      checkForUpdates,
+      downloadUpdate: vi.fn(),
+      quitAndInstall: vi.fn(),
+    } as unknown as AppUpdater
+    const coordinator = new DesktopUpdateCoordinator(
+      state => state,
+      async () => {},
+      updater,
+      () => false,
+    )
+    await expect(coordinator.check()).resolves.toEqual({ phase: 'idle' })
+    expect(setFeedURL).not.toHaveBeenCalled()
+    expect(checkForUpdates).not.toHaveBeenCalled()
+  })
+
+  it('does not install when the operator declines an available update', async () => {
+    const downloadUpdate = vi.fn()
+    const quitAndInstall = vi.fn()
+    const updater = {
+      autoDownload: true,
+      autoInstallOnAppQuit: true,
+      setFeedURL: vi.fn(),
+      checkForUpdates: vi.fn(async () => ({
+        isUpdateAvailable: true,
+        updateInfo: { version: '1.4.0' },
+      })),
+      downloadUpdate,
+      quitAndInstall,
+    } as unknown as AppUpdater
+    const coordinator = new DesktopUpdateCoordinator(
+      state => state,
+      async () => {},
+      updater,
+      () => true,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
+    )
+    await expect(coordinator.check()).resolves.toEqual({ phase: 'available', version: '1.4.0' })
+    expect(downloadUpdate).not.toHaveBeenCalled()
+    expect(quitAndInstall).not.toHaveBeenCalled()
   })
 })

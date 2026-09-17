@@ -54,3 +54,25 @@ export const en = {
   'error.unavailable': 'Read failed: {message}',
   retry: 'Retry',
 } satisfies Record<SidebarDocumentPreviewKey, string>
+
+export const ru = {
+  loading: 'Чтение…',
+  loadMore: 'Загрузить ещё',
+  changed: 'Файл изменился, показана прежняя версия.',
+  reloadNow: 'Перезагрузить',
+  reload: 'Прочитать файл снова',
+  'wrap.enable': 'Включить перенос строк',
+  'wrap.disable': 'Выключить перенос строк',
+  'wrap.aria': 'Перенос строк',
+  openWith: 'Открыть с помощью',
+  'viewer.text': 'Простой текст',
+  resourceUnavailable: 'Служба файловых ресурсов недоступна.',
+  rendererUnavailable: 'Предпросмотр {name} недоступен.',
+  unsupportedFile: 'Для этого типа файла предпросмотра пока нет.',
+  'error.notFound': 'Файл не найден. Его могли переместить или удалить.',
+  'error.tooLarge': 'Эта страница превышает лимит {limit} и не может быть прочитана.',
+  'error.notText': 'Для этого типа файла предпросмотра пока нет.',
+  'error.notRegularFile': 'Это не обычный файл, показывать нечего.',
+  'error.unavailable': 'Не удалось прочитать: {message}',
+  retry: 'Повторить',
+} satisfies Record<SidebarDocumentPreviewKey, string>

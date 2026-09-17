@@ -21,3 +21,9 @@ export const en = {
   copy: 'Copy',
   copied: 'Copied',
 } satisfies Record<keyof typeof zh, string>
+
+export const ru = {
+  title: 'Код',
+  copy: 'Копировать',
+  copied: 'Скопировано',
+} satisfies Record<keyof typeof zh, string>

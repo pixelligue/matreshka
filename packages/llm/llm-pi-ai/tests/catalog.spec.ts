@@ -6,6 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import LlmRuntime, { createUserMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { StreamChunk } from '@deepseek-ai/dsh-llm'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
+import { LocalCredentialProvider } from '@deepseek-ai/dsh-credentials-local'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import { getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
@@ -93,6 +94,131 @@ describe('hand-declared providers', () => {
     expect(server.paths).toEqual(['/v1/chat/completions'])
     // The reference resolved through the environment and reached the wire.
     expect(server.headers[0]?.authorization).toBe('Bearer test-key')
+  })
+
+  it('lists only the Matreshka Matrena catalog', async () => {
+    const ctx = await harness({
+      allowlistProviders: ['matreshka'],
+      providers: {
+        matreshka: {
+          displayName: 'Matreshka',
+          api: 'openai-completions',
+          baseURL: 'http://127.0.0.1:8016/v1',
+          models: [{ id: 'matrena', name: 'Matrena', contextWindow: 262144, maxTokens: 32768 }],
+        },
+        grok: {
+          displayName: 'Grok',
+          api: 'openai-completions',
+          baseURL: 'https://api.x.ai/v1',
+          models: [{ id: 'grok-4.6', name: 'Grok 4.6', contextWindow: 1, maxTokens: 1 }],
+        },
+      },
+    })
+    expect(ctx.llm.listProviders().map(entry => entry.id)).toEqual(['matreshka'])
+    expect(await ctx.llm.listModels('matreshka')).toEqual([
+      { provider: 'matreshka', id: 'matrena', name: 'Matrena', inputModalities: ['text'] },
+    ])
+  })
+
+  it('ignores a leftover Grok settings provider when Matreshka is allowlisted', async () => {
+    const dir = await home()
+    await writeFile(join(dir, 'settings.yaml'), [
+      'llm-pi-ai:',
+      '  providers:',
+      '    grok:',
+      '      displayName: Grok',
+      '      api: openai-completions',
+      '      baseURL: https://api.x.ai/v1',
+      '      models:',
+      '        - id: grok-4.6',
+      '          name: Grok 4.6',
+      '          contextWindow: 1',
+      '          maxTokens: 1',
+      '',
+    ].join('\n'))
+    const ctx = await bootWithSettings(dir, {
+      allowlistProviders: ['matreshka'],
+      providers: {
+        matreshka: {
+          displayName: 'Matreshka',
+          api: 'openai-completions',
+          baseURL: 'http://127.0.0.1:8016/v1',
+          models: [{ id: 'matrena', name: 'Matrena', contextWindow: 262144, maxTokens: 32768 }],
+        },
+      },
+    })
+    expect(ctx.llm.listProviders().map(entry => entry.id)).toEqual(['matreshka'])
+    expect(await ctx.llm.listModels('matreshka')).toEqual([
+      { provider: 'matreshka', id: 'matrena', name: 'Matrena', inputModalities: ['text'] },
+    ])
+  })
+
+  it('does not send a Matreshka model request without a session token', async () => {
+    const dir = await home()
+    await writeFile(join(dir, '.credentials.yaml'), 'version: 1\nrefs: {}\n', { mode: 0o600 })
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LocalCredentialProvider, { path: join(dir, '.credentials.yaml'), watch: false })
+    await ctx.plugin(LlmPiAi, {
+      allowlistProviders: ['matreshka'],
+      providers: {
+        matreshka: {
+          displayName: 'Matreshka',
+          api: 'openai-completions',
+          baseURL: `${server.url}/v1`,
+          apiKeyEnv: 'MATRESHKA_SESSION_TOKEN',
+          models: [{ id: 'matrena', name: 'Matrena', contextWindow: 262144, maxTokens: 32768 }],
+        },
+      },
+    })
+    const result = await assemble(ctx, {
+      provider: 'matreshka',
+      model: 'matrena',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+    expect(result.finish).toMatchObject({ kind: 'error', failure: { code: 'MISSING_CREDENTIAL' } })
+    expect(server.paths).toEqual([])
+  })
+
+  it('sends Authorization Bearer for a stored Matreshka session token', async () => {
+    const dir = await home()
+    await writeFile(
+      join(dir, '.credentials.yaml'),
+      'version: 1\nrefs:\n  MATRESHKA_SESSION_TOKEN: sess-token\n',
+      { mode: 0o600 },
+    )
+    const server = await mockServer([{ events: textEvents }])
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LocalCredentialProvider, { path: join(dir, '.credentials.yaml'), watch: false })
+    await ctx.plugin(LlmPiAi, {
+      allowlistProviders: ['matreshka'],
+      providers: {
+        matreshka: {
+          displayName: 'Matreshka',
+          api: 'openai-completions',
+          baseURL: `${server.url}/v1`,
+          apiKeyEnv: 'MATRESHKA_SESSION_TOKEN',
+          models: [{ id: 'matrena', name: 'Matrena', contextWindow: 262144, maxTokens: 32768 }],
+        },
+      },
+    })
+    const result = await assemble(ctx, {
+      provider: 'matreshka',
+      model: 'matrena',
+      messages: [createUserMessage({
+        content: [{ type: 'text', text: 'hi' }],
+        source: { kind: 'plugin', plugin: 'test' },
+      })],
+    })
+    expect(result.finish).toEqual({ kind: 'stop' })
+    expect(server.paths).toEqual(['/v1/chat/completions'])
+    expect(server.headers[0]?.authorization).toBe('Bearer sess-token')
+    expect((server.requests[0] as { model?: string }).model).toBe('matrena')
   })
 
   it('lists and resolves the declared models rather than a catalog', async () => {

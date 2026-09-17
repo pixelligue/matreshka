@@ -13,11 +13,50 @@
 
 # ── surface-specific values the base deliberately omits ─────────────────────
 
+- id: llm-deepseek
+  disabled: true
+
+- id: web-search-deepseek
+  disabled: true
+
+- id: web
+  config:
+    searchProvider: keenable
+    fetchProvider: keenable
+
+- insert:
+    - id: web-search-matreshka
+      name: '@deepseek-ai/dsh-web-search-matreshka'
+      config:
+        apiOrigin: http://127.0.0.1:8016
+
+- id: agent-default-model
+  config:
+    provider: matreshka
+    model: matrena
+
+- id: llm-pi-ai
+  config:
+    allowlistProviders: [matreshka]
+    providers:
+      matreshka:
+        displayName: Matreshka
+        api: openai-completions
+        baseURL: http://127.0.0.1:8016/v1
+        apiKeyEnv: MATRESHKA_SESSION_TOKEN
+        models:
+          - id: matrena
+            name: Matrena
+            contextWindow: 262144
+            maxTokens: 32768
+
 - id: system-prompt
   config:
     personaSuffix: Your working directory is {{cwd}}.
     personaPrefix: >-
       You are a coding agent powered by the {{model}} model.
+      When the user asks you to search the web or look something up online,
+      you MUST call the web_search tool. Do not claim you will search without a tool call.
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a
@@ -241,9 +280,17 @@
 
     - id: ui-settings-general
       name: '@deepseek-ai/dsh-client-ui-settings-general'
+      config:
+        hiddenSectionIds:
+          - models
+          - agent-presets
+          - plugins
+          - archived-sessions
 
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
+      config:
+        apiOrigin: http://127.0.0.1:8016
 
     - id: ui-settings-plugin-inventory
       name: '@deepseek-ai/dsh-client-ui-settings-plugin-inventory'
@@ -259,6 +306,8 @@
 
     - id: ui-chat
       name: '@deepseek-ai/dsh-client-ui-chat'
+      config:
+        hideInternalTranscript: true
 
     # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official

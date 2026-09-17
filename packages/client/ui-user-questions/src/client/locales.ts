@@ -40,3 +40,21 @@ export const en = {
   'plan.decline': 'Refuse',
   'plan.discuss': 'Chat about it',
 } satisfies Record<QuestionKey, string>
+
+export const ru = {
+  'error.incomplete': 'Сначала ответьте на этот вопрос.',
+  'error.unanswered': 'Выберите вариант или введите свой ответ.',
+  'nav.prev': 'Предыдущий вопрос',
+  'nav.next': 'Следующий вопрос',
+  'nav.minimize': 'Свернуть карточку вопросов',
+  'nav.maximize': 'Развернуть карточку вопросов',
+  'nav.cancel': 'Отклонить все вопросы',
+  'option.recommended': 'Рекомендуется',
+  'custom.placeholder': 'Введите ответ',
+  'action.skip': 'Пропустить',
+  'action.next': 'Далее',
+  'plan.header': 'План на проверке',
+  'plan.approve': 'Подтвердить',
+  'plan.decline': 'Отклонить',
+  'plan.discuss': 'Обсудить в чате',
+} satisfies Record<QuestionKey, string>

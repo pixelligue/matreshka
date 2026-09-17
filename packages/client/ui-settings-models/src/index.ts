@@ -1,4 +1,6 @@
 /** Host loader entry for the browser implementation exported from `./client`. */
 
-/** Host plugin body — no host-side behavior for the models settings plugin. */
+export { Config } from './api-origin.ts'
+
+/** Host plugin body — origin is consumed on the Client face. */
 export function apply(): void {}

@@ -106,6 +106,8 @@ describe('WorkspaceBrowser.module.css list', () => {
     expect(rowDeclarations('.searchResultRow')?.get('min-height')).toBe('48px')
     expect(rowDeclarations('.sessionRow.selected')?.get('background'))
       .toBe('var(--dsw-alias-interactive-bg-hover)')
+    expect(rowDeclarations('.title')?.get('text-overflow')).toBe('ellipsis')
+    expect(rowDeclarations('.folder img')?.get('width')).toBe('16px')
   })
 
   it('pins both rail controls to the shared left anchor during the column slide', () => {

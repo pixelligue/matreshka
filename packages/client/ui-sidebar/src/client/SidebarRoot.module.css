@@ -24,7 +24,7 @@
 
 /* Rail geometry (figma rail spec): 36x36 control boxes centered in the 56px
    rail (10px side padding), 12px vertical rhythm, 18px from the rail top to
-   the whale's box (24px to the 24-wide whale glyph itself). */
+   the brand-mark box (24px to the 24-wide mark itself). */
 .root.collapsed {
   padding: 18px 10px 6px;
 }
@@ -142,6 +142,13 @@
   justify-content: center;
 }
 
+.brandMark img,
+.railMark img {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
 .brandName {
   display: inline-flex;
   align-items: center;
@@ -202,7 +209,7 @@
   height: 36px;
 }
 
-/* Rail logo swap: collapsed, the toggle rests as the whale mark (brand ink,
+/* Rail logo swap: collapsed, the toggle rests as the brand mark (brand ink,
    no hover circle) and hovering reveals the panel icon — the expand
    affordance (figma sidebar-hover flow). Expanded it is a plain panel icon. */
 .collapsed .toggle .panelIcon {
@@ -385,31 +392,51 @@
   padding-left: 0;
 }
 
-/* Footer seats: additive actions stack above Settings. Each occupant owns its
-   button geometry and hover chrome. */
 .footArea {
   flex: none;
   display: flex;
   flex-direction: column;
 }
 
+.footerActions,
 .settingsArea,
-.footerActions {
+.footEnd {
   flex: none;
+  min-width: 0;
+}
+
+.footerActions {
+  width: 100%;
+}
+
+.bottomRow {
+  display: flex;
+  align-items: center;
   min-width: 0;
   width: 100%;
 }
 
-.footerActions {
-  display: flex;
+.settingsArea {
+  flex: 1;
+  min-width: 0;
+}
+
+.footEnd {
+  flex: none;
 }
 
 .collapsed .footArea {
   align-items: center;
 }
 
+.collapsed .bottomRow {
+  flex-direction: column;
+  width: auto;
+}
+
 .collapsed .settingsArea,
-.collapsed .footerActions {
+.collapsed .footerActions,
+.collapsed .footEnd {
   display: flex;
   justify-content: center;
   width: auto;

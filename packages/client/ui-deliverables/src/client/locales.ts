@@ -86,4 +86,45 @@ export const en: Record<DeliverablesKey, string> = {
 }
 
 /** Union of this namespace's dictionary keys. */
+
+export const ru: Record<DeliverablesKey, string> = {
+  'presented.nativeUnavailable': 'У этого файла нет пути на хосте. Откройте предпросмотр в боковой панели.',
+  'presented.revealError': 'Не удалось показать в файловом менеджере. Повторите.',
+  'presented.directoryError': 'Не удалось открыть папку файла. Повторите.',
+  'presented.directoryOpening': 'Открытие папки файла…',
+  'presented.directoryOpened': 'Запрошено открытие папки файла',
+  'presented.revealed': 'Запрошен показ в файловом менеджере',
+  'presented.revealing': 'Показ в файловом менеджере…',
+  'presented.unavailable': 'У этого хоста нет рабочего стола, чтобы открыть файлы или папки',
+  'presented.retry': 'Повторить',
+  'presented.hostError': 'Не удалось прочитать сведения о рабочем столе хоста',
+  'presented.directory': 'Открыть папку файла',
+  'presented.explorer': 'Показать в Проводнике',
+  'presented.finder': 'Показать в Finder',
+  'presented.defaultApp': 'Открыть в приложении по умолчанию',
+  'presented.more': 'Другие действия с файлом {name}',
+  'presented.action': 'Открыть',
+  'presented.preview': 'Предпросмотр в боковой панели',
+  'presented.previewButton': 'Открыть {name} в боковой панели',
+  'presented.previewCard': 'Предпросмотр {name} в боковой панели',
+  'presented.all': 'Все {count} файлов',
+  'presented.expandAria': 'Показать все {count} доставленных файлов',
+  'presented.collapse': 'Свернуть',
+  'presented.collapseAria': 'Свернуть список доставленных файлов',
+  'presented.opening': 'Открытие…',
+  'presented.opened': 'Открыто в приложении по умолчанию',
+  'presented.error': 'Не удалось открыть. Нажмите, чтобы повторить.',
+  'presented.file': 'Файл',
+  'row.title': 'Доставленные файлы',
+  'row.running': 'Доставка',
+  'row.ok': 'Доставлено',
+  'row.error': 'Доставка не удалась',
+  'row.stopped': 'Прервано',
+  'row.inspect': 'Просмотр вызова',
+  'produced.label': 'Изменённые файлы',
+  'produced.moreOne': '+ 1 файл',
+  'produced.more': '+ {count} файлов',
+  'produced.open': 'Открыть {name}',
+}
+
 export type DeliverablesKey = keyof typeof zh

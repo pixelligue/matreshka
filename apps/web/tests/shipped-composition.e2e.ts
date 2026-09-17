@@ -465,7 +465,7 @@ function assertLeanChildRecord(agent: Agent, mode: 'one-shot' | 'continuable'): 
  */
 const EXPECTED_TOOLS = [
   'ask_user_question',
-  'bash',
+  process.platform === 'win32' ? 'pwsh' : 'bash',
   'create_goal',
   'edit',
   'exit_plan_mode',
@@ -516,14 +516,16 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   expect(existsSync(join(scaffold.harnessHome, 'profiles', 'node_modules'))).toBe(false)
   const ctx = scaffold.ctx
   expect(ctx.llm.listProviders().some(provider => provider.id === 'deepseek-messages')).toBe(false)
-  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'deepseek-official', model: 'deepseek-flash' })
+  expect(ctx.llm.listProviders().some(provider => provider.id === 'deepseek-official')).toBe(false)
+  expect(ctx.llm.listProviders().map(provider => provider.id)).toEqual(['matreshka'])
+  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'matreshka', model: 'matrena' })
   const index = await fetch(`http://127.0.0.1:${String(ctx.webServer.port)}`, {
     headers: { 'accept-encoding': 'gzip' },
   })
   expect(index.headers.get('content-encoding')).toBe('gzip')
   expect(index.headers.get('vary')).toContain('Accept-Encoding')
   await index.body?.cancel()
-  expect(ctx.llm.providerRetryPolicy('deepseek-official')).toMatchInlineSnapshot(`
+  expect(ctx.llm.providerRetryPolicy('matreshka')).toMatchInlineSnapshot(`
     {
       "initialDelayMs": 500,
       "jitterRatio": 0.1,
@@ -537,47 +539,6 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
         "TIMEOUT",
         "TRANSPORT",
       ],
-    }
-  `)
-  await ctx.settings.update('llm-deepseek', {
-    retryPolicy: { mode: 'always', maxRetries: 5 },
-  })
-  expect(ctx.llm.providerRetryPolicy('deepseek-official')).toMatchInlineSnapshot(`
-    {
-      "initialDelayMs": 500,
-      "jitterRatio": 0.1,
-      "maxDelayMs": 10000,
-      "mode": "always",
-    }
-  `)
-  await ctx.settings.update('llm-pi-ai', {
-    providers: {
-      openai: {},
-      anthropic: { retryPolicy: { mode: 'always' } },
-    },
-  })
-  expect(ctx.llm.providerRetryPolicy('openai')).toMatchInlineSnapshot(`
-    {
-      "initialDelayMs": 500,
-      "jitterRatio": 0.1,
-      "maxDelayMs": 10000,
-      "maxRetries": 5,
-      "mode": "normal",
-      "retryableCodes": [
-        "EMPTY_RESPONSE",
-        "RATE_LIMIT",
-        "SERVER",
-        "TIMEOUT",
-        "TRANSPORT",
-      ],
-    }
-  `)
-  expect(ctx.llm.providerRetryPolicy('anthropic')).toMatchInlineSnapshot(`
-    {
-      "initialDelayMs": 500,
-      "jitterRatio": 0.1,
-      "maxDelayMs": 10000,
-      "mode": "always",
     }
   `)
   // The catalog belongs to an AGENT, not to the process: every model-facing row
@@ -592,7 +553,8 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   })
   try {
     const names = ctx.tools.schemas(handle.agent).map(schema => schema.name).sort()
-    expect(names.filter(name => !RIPGREP_TOOLS.includes(name))).toEqual(EXPECTED_TOOLS)
+    expect(names.filter(name => !RIPGREP_TOOLS.includes(name)).sort())
+      .toEqual([...EXPECTED_TOOLS].sort())
     // The packaged ripgrep binary ships with the dependency, so the pair is a
     // fixed roster member on every host.
     expect(names.filter(name => RIPGREP_TOOLS.includes(name))).toEqual(RIPGREP_TOOLS)
@@ -627,7 +589,7 @@ it('assembles the shipped Web transport, catalog, guidance, and defaults', async
   const commandHandle = await scaffold.ctx.agents.create({
     sessionId: SessionId('shipped-command-catalog'),
     meta: { cwd: scaffold.workspaceCwd },
-    agentOptions: { provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+    agentOptions: { provider: 'matreshka', model: 'matrena' },
   })
   try {
     expect(scaffold.ctx.commands.list(commandHandle.agent)).toContainEqual({

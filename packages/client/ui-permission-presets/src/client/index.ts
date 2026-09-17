@@ -40,9 +40,7 @@ import { PermissionSelect } from './PermissionSelect.tsx'
 import type { PermissionSelectInjected } from './PermissionSelect.tsx'
 import { PermissionRow } from './PermissionRow.tsx'
 import type { PermissionRowInjected } from './PermissionRow.tsx'
-import {
-  accessEn, accessZh, en, PERMISSION_ACCESS_NS, zh,
-} from './locales.ts'
+import { accessEn, accessRu, accessZh, en, ru, PERMISSION_ACCESS_NS, zh } from './locales.ts'
 import {
   AUTO_REVIEW_PRESET, displayPermissionPreset, FULL_ACCESS_PRESET,
 } from './presentation.ts'
@@ -114,7 +112,7 @@ export function apply(ctx: ClientContext): void {
   const command = ctx.get('commandUi') as CommandUiContract
   const sessions = ctx.sessions
   ctx.effect(
-    () => ctx.locale.register(PERMISSION_ACCESS_NS, { zh: accessZh, en: accessEn }),
+    () => ctx.locale.register(PERMISSION_ACCESS_NS, { zh: accessZh, en: accessEn, ru: accessRu }),
     'ui-permission: current-session dictionaries',
   )
   const t = ctx.locale.bind(PERMISSION_ACCESS_NS)
@@ -141,7 +139,7 @@ export function apply(ctx: ClientContext): void {
     'ui-permission: dismiss stale slash choices',
   )
 
-  ctx.effect(() => ctx.locale.register('settings.permission', { zh, en }), 'ui-permission: settings row dictionaries')
+  ctx.effect(() => ctx.locale.register('settings.permission', { zh, en, ru }), 'ui-permission: settings row dictionaries')
 
   // The shared SettingsScope mirror updates after document commits and reconnects.
   const controller = new PermissionPresetSettingsController(

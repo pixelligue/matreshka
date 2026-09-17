@@ -91,6 +91,7 @@ import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-agent'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { REPO_ROOT, requireDist } from './support.ts'
 
 // Host-side web e2e cannot import a browser package: doing so would pull that
@@ -104,6 +105,8 @@ import { REPO_ROOT, requireDist } from './support.ts'
 export const WELCOME_NOTICE_SETTINGS_NAMESPACE = 'ui-onboarding'
 export const WELCOME_NOTICE_ACK_FIELD = 'welcomeNoticeVersion'
 export const WELCOME_NOTICE_VERSION = '2026-08-13.1'
+/** Dummy session stored for ordinary e2e so the full-page sign-in does not block. */
+export const MATRESHKA_E2E_SESSION_TOKEN = 'e2e-matreshka-session'
 export const WELCOME_NOTICE_COPY = {
   zh: {
     title: '内测声明',
@@ -373,6 +376,11 @@ export interface LaunchOptions {
   deepSeekMessages?: boolean
   /** Leave the current welcome notice pending; ordinary scenarios pre-acknowledge it before browser boot. */
   welcomeNoticePending?: boolean
+  /**
+   * Leave the Matreshka session credential unset so first-run sign-in is
+   * visible. Ordinary scenarios store a dummy token before browser boot.
+   */
+  matreshkaSessionPending?: boolean
   /**
    * Patch the shipped DeepSeek search row to a deterministic endpoint and
    * credential reference. Browser search scenarios keep the real provider and
@@ -739,6 +747,13 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       await ctx.settings.mutate(WELCOME_NOTICE_SETTINGS_NAMESPACE, [{
         op: 'set', path: [WELCOME_NOTICE_ACK_FIELD], value: WELCOME_NOTICE_VERSION,
       }])
+    }
+    if (options.matreshkaSessionPending !== true) {
+      const credentials = ctx.get('credentials')
+      if (credentials === undefined) {
+        throw new Error('web e2e scaffold: credentials service missing after settled boot')
+      }
+      await credentials.set(credentialRef('MATRESHKA_SESSION_TOKEN'), MATRESHKA_E2E_SESSION_TOKEN)
     }
     const boundPort = ctx.get('webServer')?.port
     if (boundPort === undefined) {

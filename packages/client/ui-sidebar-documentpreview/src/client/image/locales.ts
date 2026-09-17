@@ -19,6 +19,14 @@ export const en = {
   unsupported: 'Image preview requires the complete file contents.',
 } satisfies Record<ImagePreviewKey, string>
 
+export const ru = {
+  title: 'Изображение',
+  preview: 'Предпросмотр изображения: {name}',
+  loading: 'Чтение…',
+  failed: 'Это изображение не удалось показать.',
+  unsupported: 'Предпросмотр изображения требует полного содержимого файла.',
+} satisfies Record<ImagePreviewKey, string>
+
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Image preview selection, accessible name, and status text. */

@@ -32,3 +32,17 @@ export const en = {
   'connection.reconnect': 'Disconnected, reconnect now',
   'connection.restart': 'Reconnecting, reconnect now',
 } satisfies Record<SettingsKey, string>
+
+export const ru = {
+  'trigger': 'Настройки',
+  'title': 'Настройки',
+  'close': 'Закрыть',
+  'openDocument': 'Открыть файл конфигурации',
+  'openDocument.error': 'Не удалось открыть файл конфигурации',
+  'general.nav': 'Общие',
+  'connection.error': 'Нет соединения',
+  'connection.connecting': 'Повторное подключение',
+  'connection.connected': 'Подключено',
+  'connection.reconnect': 'Нет соединения, подключить сейчас',
+  'connection.restart': 'Переподключение, подключить сейчас',
+} satisfies Record<SettingsKey, string>

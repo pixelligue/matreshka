@@ -41,13 +41,13 @@ async function fixture(
   const base = `deepseek-harness-${version}-${os}-${arch}`
   const origin = environment === 'test'
     ? TEST_ORIGIN
-    : 'https://download.deepseek.com'
+    : 'https://api.example.com'
   await writeFile(join(artifactsRoot, `${target}-release.json`), `${JSON.stringify({
     schemaVersion: 1,
     target,
     version,
     environment,
-    publicUrl: `${origin}/_/harness/desktop/stable/${target}/`,
+    publicUrl: `${origin}/v1/updates/desktop/${target}/`,
   })}\n`)
 
   if (os === 'mac') {
@@ -80,11 +80,12 @@ async function fixture(
     environment: environment === 'test'
       ? {
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
-        DOWNLOAD_TEST_ORIGIN: TEST_ORIGIN,
+        MATRESHKA_API_ORIGIN: TEST_ORIGIN,
         DOWNLOAD_TEST_COS_BUCKET: TEST_BUCKET,
       }
       : {
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
+        MATRESHKA_API_ORIGIN: 'https://api.example.com',
         DOWNLOAD_PROD_COS_BUCKET: PRODUCTION_BUCKET,
       },
   }
@@ -104,7 +105,7 @@ describe('desktop upload plan', () => {
     expect(plan).toMatchObject({
       environment: 'test',
       version: '1.2.3',
-      publicUrl: 'https://desktop-updates.example.com/_/harness/desktop/stable/mac-arm64/',
+      publicUrl: 'https://desktop-updates.example.com/v1/updates/desktop/mac-arm64/',
       bucket: TEST_BUCKET,
     })
     expect(plan.artifacts.map(artifact => artifact.filename)).toEqual([
@@ -138,7 +139,7 @@ describe('desktop upload plan', () => {
       'latest.yml',
     ])
     expect(plan).toMatchObject({
-      publicUrl: 'https://download.deepseek.com/_/harness/desktop/stable/win-x64/',
+      publicUrl: 'https://api.example.com/v1/updates/desktop/win-x64/',
       bucket: PRODUCTION_BUCKET,
     })
   })

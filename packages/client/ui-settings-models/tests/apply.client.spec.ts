@@ -1,4 +1,7 @@
 /** Models section registration: slot declaration injection, the locale-following label thunk, and HMR recovery. */
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
@@ -8,14 +11,14 @@ import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { remoteDefaultResponses } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/remote-default-responses.ts'
 import { ok, RemoteMock } from '@deepseek-ai/dsh-remote-mock'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
-import { apply, inject, refreshIfLoaded } from '@deepseek-ai/dsh-client-ui-settings-models/client'
+import { apply, Config, inject, refreshIfLoaded } from '@deepseek-ai/dsh-client-ui-settings-models/client'
 import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE, WELCOME_NOTICE_VERSION,
 } from '../src/onboarding-copy.ts'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
-import { DeepSeekOnboardingDialog } from '../src/client/DeepSeekOnboardingDialog.tsx'
+import { DEFAULT_MATRESHKA_API_ORIGIN, MatreshkaSignInDialog } from '../src/client/MatreshkaSignInDialog.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
-import { apply as hostApply } from '../src/index.ts'
+import { apply as hostApply, Config as HostConfig } from '../src/index.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -64,6 +67,8 @@ function declare(slots: SlotRegistry): () => void {
 describe('ui-settings-models apply', () => {
   it('keeps the host Loader entry inert', () => {
     expect(hostApply).not.toThrow()
+    expect(HostConfig({}).apiOrigin).toBe(DEFAULT_MATRESHKA_API_ORIGIN)
+    expect(Config({}).apiOrigin).toBe(DEFAULT_MATRESHKA_API_ORIGIN)
   })
 
   it('declares the services it uses', () => {
@@ -97,14 +102,16 @@ describe('ui-settings-models apply', () => {
       component: WelcomeNotice,
       options: { id: 'welcome-notice', order: -100 },
     })
-    const deepSeek = onboarding.find(entry => entry.options.id === 'deepseek-official')!
-    expect(deepSeek.component).toBe(DeepSeekOnboardingDialog)
-    expect(deepSeek.options).toMatchObject({ id: 'deepseek-official', order: 0 })
-    const deepSeekInjected = (
-      deepSeek.inject as unknown as () => import('../src/client/DeepSeekOnboardingDialog.tsx').DeepSeekOnboardingInjected
+    const signIn = onboarding.find(entry => entry.options.id === 'matreshka-sign-in')!
+    expect(signIn.component).toBe(MatreshkaSignInDialog)
+    expect(signIn.options).toMatchObject({ id: 'matreshka-sign-in', order: 0 })
+    const signInInjected = (
+      signIn.inject as unknown as () => import('../src/client/MatreshkaSignInDialog.tsx').MatreshkaSignInInjected
     )()
-    expect(deepSeekInjected.hooks.models).toBe(injected.controller.store)
-    expect(typeof deepSeekInjected.operations.storeCredential).toBe('function')
+    expect(typeof signInInjected.operations.storeCredential).toBe('function')
+    expect(signInInjected.t('signInTitle')).toBe('登录 Matreshka')
+    expect(signInInjected.apiOrigin).toBe(DEFAULT_MATRESHKA_API_ORIGIN)
+    expect(signInInjected.apiOrigin + '/v1').toBe('http://127.0.0.1:8016/v1')
 
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }).await()
@@ -116,6 +123,27 @@ describe('ui-settings-models apply', () => {
     expect(after.slots.entries('settings.onboarding')).toHaveLength(2)
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
+  })
+
+  it('injects an overridden apiOrigin into sign-in', async () => {
+    const b = await bench()
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply, Config }, { apiOrigin: 'http://127.0.0.1:9' }).await()
+    const signIn = b.slots.entries('settings.onboarding').find(entry => entry.options.id === 'matreshka-sign-in')!
+    const injected = (
+      signIn.inject as unknown as () => import('../src/client/MatreshkaSignInDialog.tsx').MatreshkaSignInInjected
+    )()
+    expect(injected.apiOrigin).toBe('http://127.0.0.1:9')
+  })
+
+  it('keeps shipped sign-in origin aligned with llm-pi-ai baseURL', () => {
+    const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../../..')
+    const webApp = readFileSync(join(repoRoot, 'packages/bundle/web-app/cordis.patch.yml'), 'utf8')
+    const base = readFileSync(join(repoRoot, 'packages/bundle/base/cordis.patch.yml'), 'utf8')
+    expect(webApp).toContain(`apiOrigin: ${DEFAULT_MATRESHKA_API_ORIGIN}`)
+    expect(webApp).toContain('fetchProvider: keenable')
+    expect(webApp).toContain(`baseURL: ${DEFAULT_MATRESHKA_API_ORIGIN}/v1`)
+    expect(base).toContain(`baseURL: ${DEFAULT_MATRESHKA_API_ORIGIN}/v1`)
   })
 
   it('the label thunk follows the active locale without re-registration', async () => {
@@ -181,7 +209,7 @@ describe('ui-settings-models apply', () => {
     expect(b.slots.entries('settings.models.footer')).toHaveLength(0)
   })
 
-  it('registers the zh/en nav dictionaries and disposes everything with the fiber', async () => {
+  it('registers the zh/en/ru dictionaries and disposes everything with the fiber', async () => {
     const b = await bench()
     declare(b.slots)
     const fiber = b.ctx.plugin({ inject: [...inject], apply })
@@ -193,6 +221,7 @@ describe('ui-settings-models apply', () => {
     // The (ns, locale) seats are free again — the dictionary disposers ran.
     expect(() => b.locale.register('settings.models', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings.models', 'en', {})).not.toThrow()
+    expect(() => b.locale.register('settings.models', 'ru', {})).not.toThrow()
   })
 
   it('keeps remote-browser acknowledgement in process memory', async () => {
@@ -244,11 +273,10 @@ describe('pushed invalidations', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = b.slots.entries('settings.onboarding')
-      .find(candidate => candidate.options.id === 'deepseek-official')!
+    const entry = b.slots.entries('settings.section')[0]!
     const injected = (
       entry.inject as unknown as
-      () => import('../src/client/DeepSeekOnboardingDialog.tsx').DeepSeekOnboardingInjected
+      () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected
     )()
     injected.controller.store.update((state) => { state.status = 'ready' })
     const load = vi.spyOn(injected.controller, 'load').mockResolvedValue()

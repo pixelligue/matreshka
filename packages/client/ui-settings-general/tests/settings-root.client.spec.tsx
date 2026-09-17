@@ -298,6 +298,13 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByTestId('section-general')).toBeTruthy()
   })
 
+  it('hides the section rail when only General remains', () => {
+    mount({ rows: [{ id: 'general', order: 0, label: 'General' }] })
+    openPanel()
+    expect(screen.queryByRole('button', { name: 'General' })).toBeNull()
+    expect(screen.getByTestId('section-general')).toBeTruthy()
+  })
+
   it('gives every section a nav glyph, distinct for the ids the shell knows', () => {
     mount({
       rows: [

@@ -143,11 +143,34 @@ describe('workspace browser rows', () => {
     render(<ProjectRowItem group={group} onToggle={onToggle} onCreate={onCreate} t={t} />)
 
     expect(screen.getByRole('treeitem').getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getByRole('treeitem').querySelector('[data-workspace-folder-mark]')?.getAttribute('data-workspace-folder-mark'))
+      .toBe('open')
+    expect(screen.getByRole('treeitem').querySelector('[data-matreshka-workspace-mark]')).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: '在“Project”中新建会话' }))
     expect(onCreate).toHaveBeenCalledOnce()
     expect(onToggle).not.toHaveBeenCalled()
     fireEvent.click(screen.getByText('Project'))
     expect(onToggle).toHaveBeenCalledOnce()
+
+    const collapsed: GroupNode = { ...group, expanded: false, containsCurrent: false }
+    const again = render(<ProjectRowItem group={collapsed} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+    expect(again.container.querySelector('[data-workspace-folder-mark]')?.getAttribute('data-workspace-folder-mark'))
+      .toBe('close')
+  })
+
+  it('renders a Cyrillic session title without replacement characters', () => {
+    const title = 'Приветствие пользователя в продукте'
+    render(<SessionNodeItem
+      node={{
+        id: sid('cyrillic'), title, blank: false, running: false,
+        runningSubagentCount: 0, completed: false, hasActiveSchedule: false, updatedAt: 0,
+      }}
+      currentId={undefined} now={0} onOpen={vi.fn()}
+      onRename={vi.fn()} onFork={vi.fn()} onArchive={vi.fn()} t={t}
+    />)
+    const shown = screen.getByText(title)
+    expect(shown.textContent).toBe(title)
+    expect(shown.textContent).not.toContain('\uFFFD')
   })
 
   it('renders and opens a selected running Session row', () => {

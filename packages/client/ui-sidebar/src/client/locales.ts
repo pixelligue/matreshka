@@ -20,3 +20,11 @@ export const en = {
   'toggle.collapse': 'Collapse sidebar',
   'panels.label': 'Global panels',
 } satisfies Record<SidebarKey, string>
+
+export const ru = {
+  'session.new': 'Новая сессия',
+  'session.new.label': 'Новая сессия',
+  'toggle.open': 'Открыть боковую панель',
+  'toggle.collapse': 'Свернуть боковую панель',
+  'panels.label': 'Глобальные панели',
+} satisfies Record<SidebarKey, string>

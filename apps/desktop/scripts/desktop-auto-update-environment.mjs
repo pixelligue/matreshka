@@ -5,6 +5,12 @@ import { prerelease, valid } from 'semver'
 /** Environment variable that selects the Desktop update deployment. */
 export const DESKTOP_AUTO_UPDATE_ENV = 'DSH_DESKTOP_AUTO_UPDATE_ENV'
 
+/** Origin of the Matreshka API used as the generic updater feed host. */
+export const MATRESHKA_API_ORIGIN_ENV = 'MATRESHKA_API_ORIGIN'
+
+/** Default Matreshka API origin (same as Host apiOrigin). */
+export const DEFAULT_MATRESHKA_API_ORIGIN = 'http://127.0.0.1:8016'
+
 const UPDATE_ENVIRONMENTS = {
   test: {
     originEnvName: 'DOWNLOAD_TEST_ORIGIN',
@@ -97,26 +103,26 @@ function requiredEnvironmentValue(env, name) {
 }
 
 /**
- * Normalize an HTTPS origin and reject paths or credentials.
+ * Normalize an HTTP or HTTPS origin and reject paths or credentials.
  * @param {string} value - Candidate origin.
  * @param {string} name - Environment variable used in diagnostics.
- * @returns {string} Normalized HTTPS origin without a trailing slash.
+ * @returns {string} Normalized origin without a trailing slash.
  */
-function httpsOrigin(value, name) {
+function apiOrigin(value, name) {
   let parsed
   try {
     parsed = new URL(value)
   }
   catch {
-    throw new Error(`desktop auto-update: ${name} must be an absolute HTTPS origin`)
+    throw new Error(`desktop auto-update: ${name} must be an absolute HTTP origin`)
   }
-  if (parsed.protocol !== 'https:'
+  if ((parsed.protocol !== 'http:' && parsed.protocol !== 'https:')
     || parsed.username !== ''
     || parsed.password !== ''
     || parsed.pathname !== '/'
     || parsed.search !== ''
     || parsed.hash !== '') {
-    throw new Error(`desktop auto-update: ${name} must be an absolute HTTPS origin without a path, credentials, query, or fragment`)
+    throw new Error(`desktop auto-update: ${name} must be an absolute HTTP origin without a path, credentials, query, or fragment`)
   }
   return parsed.origin
 }
@@ -127,19 +133,16 @@ function httpsOrigin(value, name) {
  * @param {NodeJS.Platform} platform - Target Node.js platform.
  * @param {string} arch - Target Node.js architecture.
  * @returns {{ environment: 'test' | 'production', target: 'mac-arm64' | 'mac-x64' | 'win-x64', origin: string, publicUrl: string, keyPrefix: string }} Resolved updater configuration.
- * @throws {Error} When the test deployment lacks a valid HTTPS origin.
  */
 export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
   const environment = resolveDesktopAutoUpdateEnvironment(env)
   const target = resolveDesktopAutoUpdateTarget(platform, arch)
-  const deployment = UPDATE_ENVIRONMENTS[environment]
-  let origin = deployment.fixedOrigin
-  if (origin === undefined) {
-    const { originEnvName } = deployment
-    if (originEnvName === undefined) throw new Error('desktop auto-update: selected deployment has no origin')
-    origin = httpsOrigin(requiredEnvironmentValue(env, originEnvName), originEnvName)
-  }
-  const keyPrefix = `_/harness/desktop/stable/${target}`
+  const configured = env[MATRESHKA_API_ORIGIN_ENV]?.trim()
+  const origin = apiOrigin(
+    configured === undefined || configured === '' ? DEFAULT_MATRESHKA_API_ORIGIN : configured,
+    MATRESHKA_API_ORIGIN_ENV,
+  )
+  const keyPrefix = `v1/updates/desktop/${target}`
   return {
     environment,
     target,

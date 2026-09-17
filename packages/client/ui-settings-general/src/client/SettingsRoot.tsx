@@ -73,20 +73,24 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
       <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <nav className={css.nav}>
           <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
-          <div className={css.navList}>
-            {rows.map(row => (
-              <button
-                key={row.id}
-                type="button"
-                className={clsx(css.navCell, row.id === active && css.active)}
-                aria-current={row.id === active ? 'true' : undefined}
-                onClick={() => { onSelect(row.id) }}
-              >
-                {navIcon(row.id)}
-                <span className={css.navLabel}>{row.label}</span>
-              </button>
-            ))}
-          </div>
+          {rows.length > 1
+            ? (
+              <div className={css.navList}>
+                {rows.map(row => (
+                  <button
+                    key={row.id}
+                    type="button"
+                    className={clsx(css.navCell, row.id === active && css.active)}
+                    aria-current={row.id === active ? 'true' : undefined}
+                    onClick={() => { onSelect(row.id) }}
+                  >
+                    {navIcon(row.id)}
+                    <span className={css.navLabel}>{row.label}</span>
+                  </button>
+                ))}
+              </div>
+            )
+            : null}
         </nav>
         <div className={css.content}>
           <div className={css.header}>

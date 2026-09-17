@@ -66,6 +66,27 @@ export interface UiI18nViolation {
   text: string
 }
 
+/**
+ * Locale dictionary files that export English must also export Russian.
+ * @param file - repository-relative path.
+ * @param sourceText - file contents.
+ * @returns a violation when `export const en` exists without `export const ru`.
+ */
+export function findMissingRuDictionary(file: string, sourceText: string): UiI18nViolation | undefined {
+  if (!localeOwner(file)) return undefined
+  const base = file.replaceAll('\\', '/').slice(file.replaceAll('\\', '/').lastIndexOf('/') + 1)
+  if (base === 'en.ts' || base === 'zh.ts' || base === 'ru.ts') return undefined
+  if (!/\bexport const en\b/.test(sourceText)) return undefined
+  if (/\bexport const ru\b/.test(sourceText)) return undefined
+  return {
+    file,
+    line: 1,
+    column: 1,
+    reason: 'locale dictionary missing ru export',
+    text: 'export const ru',
+  }
+}
+
 function localeOwner(file: string): boolean {
   const normalized = file.replaceAll('\\', '/')
   const base = normalized.slice(normalized.lastIndexOf('/') + 1)
@@ -345,6 +366,14 @@ function main(): void {
   }
   const violations = files.flatMap(file =>
     findUiI18nViolations(file, readFileSync(resolve(root, file), 'utf8')))
+  const localeFiles = [...new Set([
+    ...globSync('packages/**/src/**/locales.ts', { cwd: root }),
+    ...globSync('packages/**/src/**/locale.ts', { cwd: root }),
+  ])].map(file => file.replaceAll('\\', '/'))
+  violations.push(...localeFiles.flatMap((file) => {
+    const missing = findMissingRuDictionary(file, readFileSync(resolve(root, file), 'utf8'))
+    return missing === undefined ? [] : [missing]
+  }))
   if (violations.length > 0) {
     console.error(`verify-client-ui-i18n: ${violations.length} hard-coded UI string(s):`)
     for (const violation of violations) {

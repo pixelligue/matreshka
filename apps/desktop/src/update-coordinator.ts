@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { app } from 'electron'
 import electronUpdater, { type AppUpdater } from 'electron-updater'
+import { resolveDesktopAutoUpdateConfig } from '../scripts/desktop-auto-update-environment.mjs'
 import type { DesktopUpdateState } from './ipc.ts'
 const { autoUpdater } = electronUpdater
 
@@ -18,6 +19,7 @@ export class DesktopUpdateCoordinator {
    * @param beforeRestart - stop application-owned processes before replacement.
    * @param updater - Electron artifact updater; replaceable for tests.
    * @param enabled - whether this packaged process carries updater configuration.
+   * @param feedUrl - generic-provider feed URL for this build's target.
    */
   constructor(
     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
@@ -25,6 +27,9 @@ export class DesktopUpdateCoordinator {
     private readonly updater: AppUpdater = autoUpdater,
     private readonly enabled: () => boolean = () => (
       app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml'))
+    ),
+    private readonly feedUrl: () => string = () => (
+      resolveDesktopAutoUpdateConfig(process.env, process.platform, process.arch).publicUrl
     ),
   ) {
     this.updater.autoDownload = false
@@ -56,6 +61,7 @@ export class DesktopUpdateCoordinator {
         this.availableVersion = undefined
         return this.publish({ phase: 'idle' })
       }
+      this.updater.setFeedURL({ provider: 'generic', url: this.feedUrl() })
       const result = await this.updater.checkForUpdates()
       const version = result?.isUpdateAvailable === true ? result.updateInfo.version : undefined
       this.availableVersion = version

@@ -32,3 +32,15 @@ export const en = {
   'crumbs.aria': 'Folder navigation',
   'suggestions.aria': 'Trigger suggestions',
 } satisfies Record<MenuKey, string>
+
+export const ru = {
+  'command': 'Команды',
+  'skill': 'Навыки',
+  'subagent': 'Субагенты',
+  'loading': 'Загрузка…',
+  'drill.aria': 'Открыть папку',
+  'drill.hint': 'Открыть папку',
+  'drill.key': 'Tab',
+  'crumbs.aria': 'Навигация по папкам',
+  'suggestions.aria': 'Подсказки триггера',
+} satisfies Record<MenuKey, string>

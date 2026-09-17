@@ -106,4 +106,38 @@ describe('request image policy bounds', () => {
       assertServiceable(programmatic)
     }).toThrow(message)
   })
+
+  it('accepts the Matreshka openai-completions gateway profile', () => {
+    expect(() => Config({
+      providers: {
+        matreshka: {
+          displayName: 'Matreshka',
+          api: 'openai-completions',
+          baseURL: 'http://127.0.0.1:8016/v1',
+          apiKeyEnv: 'MATRESHKA_SESSION_TOKEN',
+          models: [
+            { id: 'matrena', name: 'Matrena', contextWindow: 262144, maxTokens: 32768 },
+          ],
+        },
+      },
+    })).not.toThrow()
+  })
+
+  it('drops provider routes outside allowlistProviders', () => {
+    const profiles = resolveProfiles({
+      matreshka: {
+        displayName: 'Matreshka',
+        api: 'openai-completions',
+        baseURL: 'http://127.0.0.1:8016/v1',
+        models: [{ id: 'matrena', name: 'Matrena', contextWindow: 1, maxTokens: 1 }],
+      },
+      grok: {
+        displayName: 'Grok',
+        api: 'openai-completions',
+        baseURL: 'https://api.x.ai/v1',
+        models: [{ id: 'grok-4.6', name: 'Grok 4.6', contextWindow: 1, maxTokens: 1 }],
+      },
+    }, 'deferred', ['matreshka'])
+    expect([...profiles.keys()]).toEqual(['matreshka'])
+  })
 })

@@ -27,3 +27,13 @@ export const en = {
   'row.inspect': 'Inspect',
   'menu.userOnly': 'user-only',
 } satisfies Record<SkillKey, string>
+
+export const ru = {
+  'row.title': 'Skill',
+  'row.running': 'Загрузка skill',
+  'row.failed': 'Не удалось загрузить skill',
+  'row.stopped': 'Загрузка skill прервана',
+  'row.instructions': 'Инструкции',
+  'row.inspect': 'Просмотр',
+  'menu.userOnly': 'только пользователь',
+} satisfies Record<SkillKey, string>

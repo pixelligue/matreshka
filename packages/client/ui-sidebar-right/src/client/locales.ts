@@ -58,3 +58,27 @@ export const en = {
   'tab.guide.title': 'Start',
   'tab.unavailable': 'Nothing here can view this kind of content yet.',
 } satisfies Record<SidebarRightKey, string>
+
+export const ru = {
+  'chrome.expand': 'Открыть боковую панель',
+  'chrome.expandAria': 'Открыть правую боковую панель',
+  'chrome.collapse': 'Свернуть боковую панель',
+  'chrome.collapseAria': 'Свернуть правую боковую панель',
+  'chrome.toFullscreen': 'На весь экран',
+  'chrome.exitFullscreen': 'Выйти из полного экрана',
+  'dock.emptyPane': 'Пустая панель',
+  'dock.splitPane': 'Разделить',
+  'dock.splitPaneDisabled': 'Максимум две панели',
+  'dock.splitPaneNarrow': 'Недостаточно ширины для разделения — расширьте боковую панель',
+  'dock.closeTab': 'Закрыть',
+  'dock.addTab': 'Новая вкладка',
+  'dock.dockFloat': 'Вернуть в боковую панель',
+  'dock.closeFloat': 'Закрыть',
+  'dock.drop.center': 'Переместить сюда',
+  'dock.drop.left': 'Разделить слева',
+  'dock.drop.right': 'Разделить справа',
+  'dock.drop.top': 'Разделить сверху',
+  'dock.drop.bottom': 'Разделить снизу',
+  'tab.guide.title': 'Начало',
+  'tab.unavailable': 'Для такого содержимого пока нет просмотра.',
+} satisfies Record<SidebarRightKey, string>

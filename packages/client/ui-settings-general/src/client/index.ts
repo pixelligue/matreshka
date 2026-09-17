@@ -8,6 +8,7 @@
  * Export discipline: packages/client/AGENTS.md.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 // Type-only: pulls the ctx.remote merge and its fixed Host facts.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
@@ -29,7 +30,7 @@ import { GeneralSection } from './GeneralSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
-import { en, zh, type SettingsKey } from './locales.ts'
+import { en, ru, zh, type SettingsKey } from './locales.ts'
 
 export type {
   CloseLabelProps, HeaderContentProps, TriggerContentProps,
@@ -52,6 +53,19 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 /** Dictionary namespace owned by this plugin (shell chrome + General copy). */
 const NS = 'settings'
 
+/** Settings-shell configuration. */
+export interface Config {
+  /** Section ids omitted from the settings nav (plugins still register them). */
+  hiddenSectionIds?: string[]
+}
+
+/** Validated settings-shell configuration. */
+export const Config: z<Config> = z.object({
+  hiddenSectionIds: z.array(z.string()).default([
+    'models', 'agent-presets', 'plugins', 'archived-sessions',
+  ]),
+})
+
 /**
  * Required services (cordis fiber inject). The target slots are declared by
  * ui-settings' apply, whose activation order relative to this one is NOT
@@ -63,9 +77,11 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'remote.settin
  * Register the `settings` dictionaries, the chrome content, and the General
  * section, each once its slot declaration is on the ledger.
  * @param ctx - client root context.
+ * @param config - validated plugin config.
  */
-export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-general: dictionaries')
+export function apply(ctx: ClientContext, config: Config = {}): void {
+  const hiddenSectionIds = new Set(Config(config).hiddenSectionIds)
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ru }), 'ui-settings-general: dictionaries')
   const connection = ctx.get('connection') as ConnectionHandle
 
   // Copy freshness is framework-owned: components read the standard `t`
@@ -105,6 +121,7 @@ export function apply(ctx: ClientContext): void {
             rowsVersion = version
             rowsRevision = revision
             rows = ctx.slots.entries('settings.section')
+              .filter(e => !hiddenSectionIds.has(e.options.id ?? ''))
               .map(e => ({
                 /* v8 ignore next -- list-slot registration requires id (SlotCore rejects an entry without one) */
                 id: e.options.id ?? '',

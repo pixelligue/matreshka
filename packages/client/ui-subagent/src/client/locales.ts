@@ -86,4 +86,45 @@ export const en: Record<SubagentKey, string> = {
 }
 
 /** Key domain of the `subagent` namespace (zh is the source of truth). */
+
+export const ru: Record<SubagentKey, string> = {
+  'diagnostic.corrupt': 'запись сессии повреждена',
+  'diagnostic.unsupported': 'версия записи субагента не поддерживается',
+  'diagnostic.unavailable': 'запись сессии временно недоступна',
+  'duration.seconds': '{seconds}с',
+  'duration.minutes': '{minutes}м {seconds}с',
+  'duration.hours': '{hours}ч {minutes}м {seconds}с',
+  'duration.days': '{days}д',
+  'duration.daysHours': '{days}д {hours}ч',
+  'duration.months': '~{months} мес',
+  'duration.monthsDays': '~{months} мес {days}д',
+  'duration.years': '~{years} г',
+  'duration.yearsMonths': '~{years} г {months} мес',
+  'duration.exactDays': '{days}д {hours}ч {minutes}м {seconds}с',
+  'duration.exactTitle': 'Всего активного времени: {duration}',
+  'tokens.thousand': '{value}K',
+  'tokens.million': '{value}M',
+  'tokens.total': '{value} ток',
+  'loading.label': 'Загрузка субагентов…',
+  'loading.aria': 'Загрузка субагентов',
+  'load.error': 'Не удалось загрузить субагентов',
+  'retry': 'Повторить',
+  'mode.oneShot': 'одноразовый',
+  'mode.continuable': 'продолжаемый',
+  'activity.running': 'выполняется',
+  'activity.inactive': 'не выполняется',
+  'branch.collapse': 'Свернуть потомков {label}',
+  'branch.expand': 'Развернуть потомков {label}',
+  'count.total.one': '{count} субагент',
+  'count.total.other': '{count} субагентов',
+  'count.running.one': '{count} субагент выполняется',
+  'count.running.other': '{count} субагентов выполняется',
+  'switcher.aria': 'Переключить субагента: {title}',
+  'tree.aria': 'Сессии субагентов',
+  'readonly.oneShot.title': 'Запись одноразового субагента',
+  'readonly.title': 'Этот субагент сейчас только для чтения',
+  'readonly.oneShot.body': 'Одноразовые задачи не принимают сообщения; здесь можно посмотреть полный журнал.',
+  'readonly.body': 'Родительская сессия офлайн; откройте её снова, чтобы продолжить отправку.',
+}
+
 export type SubagentKey = keyof typeof zh

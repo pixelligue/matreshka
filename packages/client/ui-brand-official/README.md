@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package gives an `official` client build the DeepSeek Harness mark and name in the sidebar. Other build profiles keep the shell's fish mark and local-build label, while the conversation hero always uses the animated fish. Choose it for deployments branded as DeepSeek Harness; deployments with another identity should provide a replacement brand package. It has no runtime state and does not affect model requests.
+This package gives an `official` client build the Matreshka mark and name in the sidebar and the empty-session hero. Other build profiles keep the shell's fish mark and local-build label unless this plugin still occupies those slots. Choose it for deployments branded as Matreshka; deployments with another identity should provide a replacement brand package. It has no runtime state and does not affect model requests.
 
 ## Table of Contents
 
@@ -29,11 +29,11 @@ Mount this plugin in the browser roster of a deployment whose identity is DeepSe
 
 ### Choosing the profile
 
-`DSH_CLIENT_BUILD_PROFILE` selects which brand renders. An `official` build shows the official mark and name in the sidebar; any other value leaves the shell fallbacks — the fish mark and the local-build label — in place. The conversation hero shows the animated hero fish from `dsh-client-ui-conversation` regardless of profile, because that fallback is already the official mark. The plugin still loads and validates in both cases; only the registration is profile-gated.
+The plugin occupies `sidebar.brand.mark`, `sidebar.brand.name`, and `conversation.hero.brand.mark` with the Matreshka nesting-doll PNG. The conversation hero falls back to the animated fish only when this occupant is absent.
 
 ### Replacing the brand
 
-A deployment with its own identity leaves this package out and composes another package that occupies the sidebar slots — and the hero slot, which this package leaves on its fallback. Occupying a slot is the only composition route; there is no brand configuration surface here.
+A deployment with its own identity leaves this package out and composes another package that occupies the sidebar and hero brand slots. Occupying a slot is the only composition route; there is no brand configuration surface here.
 
 -----
 

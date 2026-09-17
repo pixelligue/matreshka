@@ -48,3 +48,16 @@ export const en = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
 } satisfies Record<ReferenceKey, string>
+
+export const ru = {
+  'section.files': 'Файлы и папки',
+  'section.sessions': 'Сессии',
+  'candidate.noCwd': '(нет рабочей папки)',
+  'crumb.root': 'Рабочая область',
+  'time.now': 'сейчас',
+  'time.minutes': '{n} мин',
+  'time.hours': '{n} ч',
+  'time.days': '{n} д',
+  'time.months': '{n} мес',
+  'time.years': '{n} г',
+} satisfies Record<ReferenceKey, string>

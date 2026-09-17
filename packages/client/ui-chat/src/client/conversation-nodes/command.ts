@@ -8,6 +8,7 @@ import type {} from '@deepseek-ai/dsh-commands/types'
 import { isReplacementSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
 import type { ManualCompactionChatData } from '../contract/chat-nodes.ts'
 import { chatNode } from './common.ts'
+import { hideInternalCommand } from '../transcript-policy.ts'
 
 declare module '../contract/chat-nodes.ts' {
   interface ChatNodeDataMap {
@@ -206,7 +207,13 @@ export const commandDefinition: ConversationNodeDefinition<CommandState> = {
     const state = context.state ?? fallbackState(context)
     if (state === undefined) return null
     if (state.command.name !== 'compact') {
-      return chatNode(context, 'command', state.command.seq, state.command)
+      return chatNode(
+        context,
+        'command',
+        state.command.seq,
+        state.command,
+        hideInternalCommand(state.command.name) ? { visibility: 'hidden' } : {},
+      )
     }
     const compaction = state.checkpoint === undefined
       ? null

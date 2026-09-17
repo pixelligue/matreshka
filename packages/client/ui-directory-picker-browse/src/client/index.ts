@@ -65,6 +65,21 @@ export function apply(ctx: ClientContext): void {
         'browser.truncated': 'Too many folders to list; only the beginning is shown.',
         'browser.showHidden': 'Show hidden files',
       }],
+      ['ru', {
+        'browser.title': 'Выберите каталог рабочей области',
+        'browser.home': 'Домашний каталог',
+        'browser.newFolder': 'Новая папка',
+        'browser.folderName': 'Имя папки',
+        'browser.createIn': 'Новая папка в «{name}»',
+        'browser.untitledFolder': 'Папка без имени',
+        'browser.create': 'Создать',
+        'browser.cancel': 'Отмена',
+        'browser.open': 'Открыть',
+        'browser.editPath': 'Изменить путь',
+        'browser.loading': 'Загрузка…',
+        'browser.truncated': 'Слишком много папок; показана только начальная часть списка.',
+        'browser.showHidden': 'Показать скрытые файлы',
+      }],
     ]
     try {
       for (const [locale, dict] of dictionaries) disposers.push(ctx.locale.register(LOCALE_NS, locale, dict))

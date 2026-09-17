@@ -1,0 +1,31 @@
+name: matreshka-backend
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/matreshka-backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/matreshka-backend.yml"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Check lockfile
+        run: uv lock --check
+      - name: Install
+        run: uv sync --locked --all-groups
+      - name: Test
+        run: uv run --locked pytest -q

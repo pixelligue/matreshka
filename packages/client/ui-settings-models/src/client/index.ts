@@ -1,14 +1,15 @@
 /**
  * Models settings and product-onboarding plugin, browser half. It registers
- * the Models page plus the ordered internal-testing and official-DeepSeek
- * onboarding dialogs, whose UI shares this package's modal wrapper. The Host
- * settings and credential contracts stay behind their existing wire APIs.
+ * the Models page plus the ordered internal-testing notice and Matreshka
+ * full-page sign-in. The Host settings and credential contracts stay behind
+ * their existing wire APIs.
  * Export discipline:
  * packages/client/AGENTS.md.
  */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -17,16 +18,21 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
-import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
-import type { DeepSeekOnboardingInjected } from './DeepSeekOnboardingDialog.tsx'
+import { MatreshkaSignInDialog } from './MatreshkaSignInDialog.tsx'
+import type { MatreshkaSignInInjected } from './MatreshkaSignInDialog.tsx'
+import { SignOutRow } from './SignOutRow.tsx'
+import type { SignOutInjected } from './SignOutRow.tsx'
+import { ProfileFooter } from './ProfileFooter.tsx'
+import { SignOutFoot } from './SignOutFoot.tsx'
 import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
 import { decodeWelcomeSection, WelcomeNoticeStore } from './welcome-store.ts'
 import { ModelsSettingsStore } from './store.ts'
 import { createModelsOperations } from './operations.ts'
 import { createSettingsSchemaOperations } from './schema-operations.ts'
-import { en, zh, type ModelsKey } from './locales.ts'
+import { en, ru, zh, type ModelsKey } from './locales.ts'
 import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.ts'
+import { Config, DEFAULT_MATRESHKA_API_ORIGIN } from '../api-origin.ts'
 
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
 export type { ModelsFooterOwnerProps, ProviderCardExtrasOwnerProps } from './slot-contract.ts'
@@ -41,6 +47,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.models'
+
+export { Config } from '../api-origin.ts'
+
 export type {
   ModelsSettingsState, ProviderDirectoryEntry, ProviderRow,
 } from './store.ts'
@@ -71,9 +80,11 @@ export const inject = [
  * the ledger, wire its store to the connection, and keep it fresh on every
  * pushed invalidation (settings, credentials, or provider topology).
  * @param ctx - client root context.
+ * @param config - Host composition config (apiOrigin).
  */
-export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-models: copy dictionaries')
+export function apply(ctx: ClientContext, config: Config = {}): void {
+  const apiOrigin = Config(config).apiOrigin ?? DEFAULT_MATRESHKA_API_ORIGIN
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ru }), 'ui-settings-models: copy dictionaries')
 
   const schema = createSettingsSchemaOperations(ctx.settingsSchema)
   // Bound once here, where the Remote namespaces are declared in this plugin's
@@ -90,12 +101,10 @@ export function apply(ctx: ClientContext): void {
     schema,
     t,
   })
-  const deepSeekOnboardingInjected = (): DeepSeekOnboardingInjected => ({
-    controller,
-    hooks: { models: controller.store },
+  const matreshkaSignInInjected = (): MatreshkaSignInInjected => ({
     operations,
-    schema,
     t,
+    apiOrigin,
   })
   // The scope's own memory mode is what keeps a remote browser process-local,
   // so the store needs no isLoopback branch of its own.
@@ -147,8 +156,34 @@ export function apply(ctx: ClientContext): void {
   }, WelcomeNotice))
   ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
     name: 'settings.onboarding',
-    id: 'deepseek-official',
+    id: 'matreshka-sign-in',
     order: 0,
-    inject: deepSeekOnboardingInjected,
-  }, DeepSeekOnboardingDialog))
+    inject: matreshkaSignInInjected,
+  }, MatreshkaSignInDialog))
+  const signOutInjected = (): SignOutInjected => ({
+    operations,
+    apiOrigin,
+    reload: () => { window.location.reload() },
+  })
+  ctx.slots.inject('settings.general.item', () => ctx.slots.register({
+    name: 'settings.general.item',
+    id: 'matreshka-sign-out',
+    order: 80,
+    locale: NS,
+    inject: signOutInjected,
+  }, SignOutRow))
+  ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
+    name: 'sidebar.footer.action',
+    id: 'matreshka-profile',
+    order: 0,
+    locale: NS,
+    inject: signOutInjected,
+  }, ProfileFooter))
+  ctx.slots.inject('sidebar.footer.end', () => ctx.slots.register({
+    name: 'sidebar.footer.end',
+    id: 'matreshka-sign-out-foot',
+    order: 0,
+    locale: NS,
+    inject: signOutInjected,
+  }, SignOutFoot))
 }

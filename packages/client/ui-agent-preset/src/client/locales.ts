@@ -92,6 +92,77 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 }
 
 /** Simplified Chinese copy. */
+
+export const ru: Record<AgentPresetSettingsKey, string> = {
+  error: 'Не удалось загрузить пресеты агента.',
+  userTrust: 'Свой',
+  seatHint: 'Пресет агента для сессии, которую вы начинаете',
+  headerHint: 'Пресет агента этой сессии, фиксируется при старте',
+  nav: 'Пресеты агента',
+  sectionIntro:
+    'Пресет — это набор плагинов агента одной сессии: инструменты, промпт и возможности. '
+    + 'Скопируйте существующий и сделайте своим или попросите агента набросать новый в режиме «Создание».',
+  builtIn: 'Встроенные',
+  setDefault: 'Сделать по умолчанию',
+  view: 'Просмотр',
+  presetStandardName: 'Стандартный режим',
+  presetStandardDescription:
+    'Полный coding-агент: правки файлов, shell, поиск по файлам и в вебе, навыки, планы, цели, субагенты и рабочие процессы.',
+  presetPtcName: 'Режим PTC',
+  presetPtcDescription:
+    'Полный coding-агент без инструмента workflow; остальные инструменты доступны через PTC SDK, чтобы модель собирала многошаговые операции в одной программе TypeScript.',
+  presetMinimalName: 'Минимальный режим',
+  presetMinimalDescription:
+    'Coding-агент с одним инструментом — постоянным shell.',
+  presetCordisName: 'Режим создания',
+  presetCordisDescription:
+    'Для своих пресетов агента: все возможности стандартного режима плюс инспекция runtime, эксперименты с плагинами и подсказки по авторингу.',
+  duplicate: 'Дублировать',
+  duplicateUnavailable: 'В этом развёртывании нет каталога пресетов с записью',
+  delete: 'Удалить',
+  presetId: 'Идентификатор',
+  presetIdPlaceholder: 'my-agent',
+  displayName: 'Имя',
+  displayNamePlaceholder: 'Показывается в списке; по умолчанию — идентификатор',
+  inUse: 'По умолчанию для новой задачи',
+  selectionOffDefault: 'По умолчанию',
+  builtInGroup: 'Встроенные',
+  customGroup: 'Свои',
+  noDescription: 'Нет описания.',
+  brokenBadge: 'Не загрузился',
+  brokenNoCopy: 'Пресет, который не загрузился, нельзя дублировать',
+  switchRefused: 'Не удалось переключиться на {name}: {reason}',
+  copyOf: 'Скопировано из',
+  composition: 'Состав (agent.cordis.yml)',
+  cancel: 'Отмена',
+  close: 'Закрыть',
+  retry: 'Повторить',
+  copyTitle: 'Дублировать пресет',
+  copyIntro:
+    'Пресет копируется целиком на эту машину. Идентификатор станет именем каталога и его нельзя '
+    + 'будет изменить; остальное правится в файлах самого пресета.',
+  create: 'Создать',
+  creating: 'Создание…',
+  creatorDraft: 'Набросать свой пресет в режиме «Создание»',
+  openLocation: 'Открыть папку',
+  showLocation: 'Показать путь',
+  revealedPathLabel: 'Файлы пресета:',
+  idRequired: 'Укажите идентификатор пресета.',
+  idInvalid: 'Строчные буквы, цифры и дефисы, начинайте с буквы или цифры.',
+  idTaken: 'Пресет с таким идентификатором уже есть.',
+  deleteTitle: 'Удалить этот пресет?',
+  deleteDescription:
+    'Каталог пресета будет удалён. Уже запущенные на нём сессии продолжат работу; новые его выбрать не смогут.',
+  deleteConfirm: 'Удалить',
+  deleting: 'Удаление…',
+  showPicker: 'Разрешить смену режимов агента',
+  showPickerBeta: 'Beta',
+  showPickerDescription:
+    'Если включено, новые задачи могут выбирать стандартный, PTC, создание, минимальный и свои режимы. Если выключено, все новые задачи идут в режим по умолчанию (стандартный; можно сменить). Влияет только на новые задачи.',
+  enablePickerToSetDefault: 'Включите выбор режима агента, чтобы задать значение по умолчанию',
+  enablePickerToCreate: 'Включите выбор режима агента, чтобы запустить режим «Создание»',
+}
+
 export const zh: Record<AgentPresetSettingsKey, string> = {
   error: '无法加载 Agent 预设。',
   userTrust: '自定义',

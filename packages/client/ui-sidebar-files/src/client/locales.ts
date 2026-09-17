@@ -54,3 +54,19 @@ export const en = {
   'error.notDirectory': 'That is not a directory.',
   'error.unavailable': 'Read failed: {message}',
 } satisfies Record<SidebarFilesKey, string>
+
+export const ru = {
+  'type.label': 'Файлы',
+  'guide.title': 'Файлы рабочей области',
+  'guide.description': 'Просмотр файлов рабочей области этой сессии',
+  loading: 'Чтение…',
+  empty: 'Пустой каталог',
+  truncated: 'Слишком много записей, показана только часть.',
+  noWorkspace: 'У этой сессии нет каталога рабочей области.',
+  reload: 'Прочитать снова',
+  'entry.other': 'Это не файл и не каталог, открыть нельзя.',
+  'error.notFound': 'Этого каталога больше нет. Его могли переместить или удалить.',
+  'error.outsideWorkspace': 'Этот каталог вне рабочей области, боковая панель его не читает.',
+  'error.notDirectory': 'Это не каталог.',
+  'error.unavailable': 'Не удалось прочитать: {message}',
+} satisfies Record<SidebarFilesKey, string>

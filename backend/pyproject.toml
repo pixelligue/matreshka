@@ -1,0 +1,36 @@
+[project]
+name = "matreshka-api"
+version = "0.1.0"
+description = "Matreshka HTTP API for desktop model access"
+authors = [
+    { name = "tartykov", email = "192976721+pixelligue@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.135",
+    "httpx>=0.28",
+    "greenlet>=3.1",
+    "psycopg[binary]>=3.2",
+    "pwdlib[argon2]>=0.2",
+    "pydantic-settings>=2.4",
+    "redis>=5.2",
+    "sqlmodel>=0.0.24",
+]
+
+[project.scripts]
+matreshka-api = "matreshka_api.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.11,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.20",
+    "fakeredis>=2.26",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.fastapi]
+entrypoint = "matreshka_api.main:app"
