@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     llmtokenapi_api_key: str
     session_ttl_seconds: int = Field(default=60 * 60 * 24 * 7, gt=0)
     update_artifact_root: str | None = None
+    openrouter_api_key: str | None = None
 
     @field_validator(
         "database_url",
@@ -44,9 +45,9 @@ class Settings(BaseSettings):
             raise ValueError("must not be empty")
         return value
 
-    @field_validator("update_artifact_root", mode="before")
+    @field_validator("update_artifact_root", "openrouter_api_key", mode="before")
     @classmethod
-    def empty_update_root_is_absent(cls, value: object) -> object:
+    def empty_optional_is_absent(cls, value: object) -> object:
         if value is None:
             return None
         if isinstance(value, str) and not value.strip():

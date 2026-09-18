@@ -15,6 +15,7 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.unstubAllGlobals()
 })
 
 type Row = { id: string; order: number; label: string }
@@ -142,9 +143,12 @@ describe('SettingsRoot trigger', () => {
     expect(trigger.getAttribute('aria-label')).toBe(name)
     expect(renderSlot).toHaveBeenCalledWith('settings.trigger', { wide })
     expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     trigger.focus()
     fireEvent.click(trigger, { detail: 0 })
     expect(screen.getByRole('dialog')).toBeTruthy()
+    expect(track).toHaveBeenCalledWith('ui_settings_open')
     expect(screen.getByRole('button', { name, expanded: true })).toBeTruthy()
   })
 
@@ -293,6 +297,9 @@ describe('SettingsPanel navigation', () => {
   it('projects rows, marks the first active, and renders only that section', () => {
     mount()
     openPanel()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('nav')).toBeTruthy()
+    expect(dialog.className).not.toMatch(/compact/)
     expect(screen.getByRole('button', { name: 'General' }).getAttribute('aria-current')).toBe('true')
     expect(screen.getByRole('button', { name: 'Models' }).getAttribute('aria-current')).toBeNull()
     expect(screen.getByTestId('section-general')).toBeTruthy()
@@ -301,7 +308,12 @@ describe('SettingsPanel navigation', () => {
   it('hides the section rail when only General remains', () => {
     mount({ rows: [{ id: 'general', order: 0, label: 'General' }] })
     openPanel()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('nav')).toBeNull()
+    expect(dialog.className).toMatch(/compact/)
     expect(screen.queryByRole('button', { name: 'General' })).toBeNull()
+    expect(screen.getByRole('dialog', { name: 'Settings Title' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy()
     expect(screen.getByTestId('section-general')).toBeTruthy()
   })
 
@@ -385,13 +397,16 @@ describe('SettingsPanel navigation', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Models' }))
     bump([{ id: 'general', order: 0, label: 'General' }])
     expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()
+    expect(screen.getByRole('dialog').querySelector('nav')).toBeNull()
     expect(screen.getByTestId('section-general')).toBeTruthy()
   })
 
   it('renders an empty content column when the ledger is empty', () => {
     const { renderSlot } = mount({ rows: [] })
     openPanel()
-    expect(screen.getByRole('dialog')).toBeTruthy()
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('nav')).toBeNull()
+    expect(dialog.className).toMatch(/compact/)
     const sectionCalls = renderSlot.mock.calls.filter(c => c[0] === 'settings.section')
     expect(sectionCalls).toHaveLength(0)
   })

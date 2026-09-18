@@ -94,6 +94,30 @@ def test_process_exits_nonzero_when_redis_url_missing(tmp_path: Path) -> None:
     assert "REDIS_URL" in result.stderr
 
 
+def test_blank_openrouter_key_still_loads() -> None:
+    settings = Settings(
+        database_url="sqlite:///test.db",
+        redis_url="redis://127.0.0.1:6379/0",
+        llm_upstream_base_url="https://upstream.test",
+        llmtokenapi_api_key="sk_test_upstream_key",
+        openrouter_api_key="",
+    )
+    assert settings.openrouter_api_key is None
+
+
+def test_missing_openrouter_key_still_loads(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///test.db")
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    monkeypatch.setenv("LLM_UPSTREAM_BASE_URL", "https://upstream.test")
+    monkeypatch.setenv("LLMTOKENAPI_API_KEY", "sk_test_upstream_key")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    settings = load_settings()
+    assert settings.openrouter_api_key is None
+
+
 def test_non_positive_session_ttl_is_rejected() -> None:
     with pytest.raises(ValidationError):
         Settings(

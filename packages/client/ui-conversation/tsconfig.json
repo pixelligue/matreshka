@@ -84,6 +84,9 @@
       "path": "../ui-settings"
     },
     {
+      "path": "../ui-settings-models"
+    },
+    {
       "path": "../../util/crypto"
     },
     {

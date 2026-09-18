@@ -64,11 +64,16 @@ describe('reference submission', () => {
       defaultSink: sink,
       commandAttachments,
     })
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     restored.setDraft(mirror.mock.calls.at(-1)?.[0] as string)
     restored.submit()
     await vi.waitFor(() => {
       expect(sink).toHaveBeenCalledWith(spacedMention, [], 'queue', expect.any(AbortSignal))
     })
+    expect(track).toHaveBeenCalledWith('ui_send')
+    expect(track.mock.calls.every(call => call[1] === undefined)).toBe(true)
+    vi.unstubAllGlobals()
   })
 
   it('retains the chip on Host failure and clears it only after a later accepted retry', async () => {

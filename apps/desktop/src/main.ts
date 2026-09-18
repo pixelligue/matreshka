@@ -9,9 +9,11 @@ import {
   dialog,
   ipcMain,
   Menu,
+  net,
   protocol,
   type IpcMainInvokeEvent,
 } from 'electron'
+import { createDesktopAnalytics, electronNetPoster, hostRelease } from './analytics.ts'
 import { resolveDesktopPaths } from './paths.ts'
 import { DesktopProjectManager, type DesktopProjectHooks } from './project-manager.ts'
 import { DesktopHostProcess } from './host-process.ts'
@@ -25,6 +27,17 @@ import { startupFailureDocument } from './startup-document.ts'
 
 const SCHEME = 'dsh-app'
 let focusPrimaryWindow = (): void => {}
+
+function hideNonMacApplicationMenu(window?: BrowserWindow): void {
+  if (process.platform === 'darwin') return
+  Menu.setApplicationMenu(null)
+  if (window === undefined) return
+  window.setMenu(null)
+  window.removeMenu()
+  window.setMenuBarVisibility(false)
+}
+
+app.on('browser-window-created', (_event, window) => { hideNonMacApplicationMenu(window) })
 type RecoveryAction = 'restart' | 'plugins' | 'reset'
 let profileRecoveryAvailable = (): boolean => false
 const emergencyPages = new WeakMap<BrowserWindow, { url: string; message: string; busy: boolean }>()
@@ -58,6 +71,7 @@ const MIME: Readonly<Record<string, string>> = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
+  '.png': 'image/png',
   '.svg': 'image/svg+xml',
 }
 
@@ -98,6 +112,7 @@ function createWindow(preload: string, show = false): BrowserWindow {
     minWidth: 880,
     minHeight: 600,
     show,
+    autoHideMenuBar: process.platform !== 'darwin',
     icon: fileURLToPath(new URL('../build/icon.png', import.meta.url)),
     webPreferences: {
       preload,
@@ -107,6 +122,7 @@ function createWindow(preload: string, show = false): BrowserWindow {
       webSecurity: true,
     },
   })
+  hideNonMacApplicationMenu(window)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event, url) => {
     if (new URL(url).protocol !== `${SCHEME}:`) event.preventDefault()
@@ -153,6 +169,7 @@ async function serveShellAsset(request: Request): Promise<Response> {
 }
 
 async function main(): Promise<void> {
+  hideNonMacApplicationMenu()
   const resources = runtimeResources()
   const paths = resolveDesktopPaths()
   const development = app.isPackaged ? undefined : join(app.getAppPath(), '.desktop-build', 'development', 'project')
@@ -163,13 +180,11 @@ async function main(): Promise<void> {
   let quitting = false
   let startup: Promise<void> | undefined
   let mainWindow: BrowserWindow | undefined
-  let pluginWindow: BrowserWindow | undefined
   let shellInstallerOwnsQuit = false
   let updateState: DesktopUpdateState = { phase: 'idle' }
   const locale = resolveDesktopLocale(app.getLocale())
   const messages = locale.messages
   const appPreload = fileURLToPath(new URL('./preload-app.cjs', import.meta.url))
-  const managementPreload = fileURLToPath(new URL('./preload.cjs', import.meta.url))
   const startupUrl = `${SCHEME}://shell/startup.html`
   const applicationUrl = `${SCHEME}://app/index.html`
   let navigation: { window: BrowserWindow; url: string; promise: Promise<void> } | undefined
@@ -277,6 +292,14 @@ async function main(): Promise<void> {
     return startup
   }
 
+  const analytics = createDesktopAnalytics({
+    env: process.env,
+    app,
+    platform: process.platform,
+    release: hostRelease(),
+    chromeVersion: process.versions.chrome ?? '',
+    post: electronNetPoster(net),
+  })
   const updates = new DesktopUpdateCoordinator(
     publishUpdate,
     async () => {
@@ -284,6 +307,7 @@ async function main(): Promise<void> {
       await backend.stop()
     },
   )
+  updates.setAnalytics((name, props) => { analytics.track(name, props) })
 
   protocol.handle(SCHEME, (request) => {
     const url = new URL(request.url)
@@ -383,6 +407,14 @@ async function main(): Promise<void> {
     assertDesktopSender(event, ['shell'])
     await updates.install()
   })
+  ipcMain.handle(DESKTOP_IPC.analyticsTrack, (event, name: unknown, props: unknown) => {
+    assertDesktopSender(event, ['app'])
+    if (typeof name !== 'string') return
+    const record = props !== undefined && props !== null && typeof props === 'object' && !Array.isArray(props)
+      ? props as Record<string, unknown>
+      : undefined
+    analytics.track(name, record)
+  })
 
   const checkAndPrompt = async (manual: boolean): Promise<void> => {
     const state = await updates.check()
@@ -426,33 +458,11 @@ async function main(): Promise<void> {
     }
   }
 
-  const openPluginWindow = (): void => {
-    if (pluginWindow !== undefined && !pluginWindow.isDestroyed()) {
-      pluginWindow.focus()
-      return
-    }
-    pluginWindow = createWindow(managementPreload)
-    pluginWindow.setSize(900, 620)
-    pluginWindow.setTitle(messages.pluginWindowTitle)
-    pluginWindow.once('ready-to-show', () => { pluginWindow?.show() })
-    pluginWindow.once('closed', () => { pluginWindow = undefined })
-    void pluginWindow.loadURL(`${SCHEME}://shell/plugin-manager.html`)
+  if (process.platform === 'darwin') {
+    Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }]))
+  } else {
+    hideNonMacApplicationMenu()
   }
-
-  Menu.setApplicationMenu(Menu.buildFromTemplate([{
-    label: process.platform === 'darwin' ? app.name : messages.application,
-    submenu: [
-      {
-        label: development === undefined ? messages.pluginsMenu : messages.pluginsMenuPackagedOnly,
-        accelerator: 'CmdOrCtrl+,',
-        enabled: development === undefined,
-        click: openPluginWindow,
-      },
-      { label: messages.checkUpdatesMenu, click: () => { void checkAndPrompt(true) } },
-      { type: 'separator' },
-      { role: 'quit' },
-    ],
-  }]))
 
   const createMainWindow = (): BrowserWindow => {
     const window = createWindow(appPreload, true)
@@ -496,6 +506,7 @@ async function main(): Promise<void> {
   })
 
   mainWindow = createMainWindow()
+  analytics.track('app_started')
   await reconcileBackend().catch(() => undefined)
   // Window lifecycle callbacks run while backend startup is pending.
   if (quitting) return

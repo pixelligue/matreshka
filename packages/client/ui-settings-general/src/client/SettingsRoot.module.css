@@ -100,6 +100,37 @@
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
+/* Single visible section: content-sized sheet, no nav column. */
+.panel.compact {
+  width: min(560px, calc(100vw - 48px));
+  height: auto;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+.panel.compact .content {
+  min-height: 0;
+}
+
+.panel.compact .header {
+  align-items: center;
+  height: auto;
+  padding: 16px 16px 8px 20px;
+}
+
+.panel.compact .options {
+  flex: 1 1 auto;
+  padding: 0 20px 20px;
+}
+
+.panelTitle {
+  min-width: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
 /* Nav rail (figma .Setting-nav 501:29958): 188 wide, pad (12,22,12,0),
    gap 18, no own fill — the panel white shows through. */
 .nav {

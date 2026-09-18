@@ -22,7 +22,10 @@ import { ru, zh } from '../src/client/locales.ts'
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 const scrollIntoView = vi.fn()
 beforeEach(() => {
   localStorage.clear()
@@ -703,10 +706,13 @@ describe('WorkspaceBrowser', () => {
       expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: true })
     })
     expect(screen.queryByText('alpha-s')).toBeNull()
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     fireEvent.click(screen.getByRole('button', { name: '在“alpha”中新建会话' }))
     expect(b.store.getSnapshot().groupExpansion).toEqual({ alpha: true })
     expect(screen.getByText('alpha-s')).toBeTruthy()
     expect(startSession).toHaveBeenCalledWith(wid('alpha'))
+    expect(track).toHaveBeenCalledWith('ui_new_session')
   })
 
   it('auto-expands the Ungrouped bucket for a loose current session; its header has no menu and its ＋ is inert', () => {

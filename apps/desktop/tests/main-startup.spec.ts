@@ -35,6 +35,9 @@ const harness = await vi.hoisted(async () => {
     readonly show = vi.fn()
     readonly focus = vi.fn()
     readonly restore = vi.fn()
+    readonly setMenu = vi.fn()
+    readonly removeMenu = vi.fn()
+    readonly setMenuBarVisibility = vi.fn()
     constructor(readonly options: { show: boolean }) { super(); windows.push(this) }
     isDestroyed() { return this.destroyed }
     isMinimized() { return false }
@@ -83,6 +86,11 @@ const harness = await vi.hoisted(async () => {
     get hostStarted() { return hostStarted }, get navigated() { return navigated },
     get errorPublished() { return errorPublished }, get quitCompleted() { return quitCompleted },
     nextHostStart() { hostStarted = deferred(); return hostStarted.promise },
+    updates: {
+      setAnalytics: vi.fn(),
+      check: vi.fn(async () => ({ phase: 'none' as const })),
+      install: vi.fn(async () => ({ phase: 'idle' as const })),
+    },
     get pluginsEnabled() { return pluginsEnabled },
     set pluginsEnabled(value: boolean) { pluginsEnabled = value },
     reset() {
@@ -103,6 +111,7 @@ vi.mock('electron', () => ({
     handle: (channel: string, handler: (event: { senderFrame: { url: string } }) => unknown) => { harness.handlers.set(channel, handler) },
   },
   Menu: { setApplicationMenu: vi.fn(), buildFromTemplate: vi.fn() },
+  net: { request: vi.fn() },
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
 }))
 vi.mock('../src/paths.ts', () => ({ resolveDesktopPaths: () => ({ profile: 'desktop-test-profile' }) }))
@@ -123,7 +132,11 @@ vi.mock('../src/project-manager.ts', () => ({
   },
 }))
 vi.mock('../src/host-process.ts', () => ({ DesktopHostProcess: harness.FakeHost }))
-vi.mock('../src/update-coordinator.ts', () => ({ DesktopUpdateCoordinator: vi.fn() }))
+vi.mock('../src/update-coordinator.ts', () => ({
+  DesktopUpdateCoordinator: vi.fn(function DesktopUpdateCoordinator() {
+    return harness.updates
+  }),
+}))
 
 function invoke(channel: string): unknown {
   const handler = harness.handlers.get(channel)
@@ -367,5 +380,68 @@ describe('desktop main startup', () => {
     expect(host.stop).toHaveBeenCalledTimes(1)
     expect(window.urls).toEqual(['dsh-app://shell/startup.html'])
     expect(harness.windows).toHaveLength(1)
+  })
+
+  it('registers only the dsh-app protocol scheme', async () => {
+    const electron = await import('electron')
+    await import('../src/main.ts')
+    expect(electron.protocol.registerSchemesAsPrivileged).toHaveBeenCalled()
+    const schemes = vi.mocked(electron.protocol.registerSchemesAsPrivileged).mock.calls[0]?.[0] as { scheme: string }[]
+    expect(schemes.map(entry => entry.scheme)).toEqual(['dsh-app'])
+    expect(JSON.stringify(electron.protocol.registerSchemesAsPrivileged.mock.calls)).not.toContain('aptabase-ipc')
+  })
+
+  it.each(['win32', 'linux'] as const)('does not register a Plugins or Updates menu on %s', async (platform) => {
+    vi.stubGlobal('process', { ...process, platform, resourcesPath: 'desktop-test-resources' })
+    const electron = await import('electron')
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    harness.hosts[0]!.ready.resolve()
+    await harness.navigated.promise
+    expect(electron.Menu.setApplicationMenu).toHaveBeenCalledWith(null)
+    expect(electron.Menu.buildFromTemplate).not.toHaveBeenCalled()
+    expect(harness.windows[0]!.setMenu).toHaveBeenCalledWith(null)
+    expect(harness.windows[0]!.removeMenu).toHaveBeenCalled()
+    expect(harness.windows[0]!.setMenuBarVisibility).toHaveBeenCalledWith(false)
+    const serialized = JSON.stringify(electron.Menu.buildFromTemplate.mock.calls)
+    expect(serialized).not.toContain('Plugins')
+    expect(serialized).not.toContain('Updates')
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(harness.updates.check).toHaveBeenCalled()
+  })
+
+  it('registers only the macOS app menu without Plugins or Updates', async () => {
+    vi.stubGlobal('process', { ...process, platform: 'darwin', resourcesPath: 'desktop-test-resources' })
+    const electron = await import('electron')
+    await import('../src/main.ts')
+    await harness.preparing.promise
+    harness.prepared.resolve()
+    await harness.hostStarted.promise
+    harness.hosts[0]!.ready.resolve()
+    await harness.navigated.promise
+    expect(electron.Menu.buildFromTemplate).toHaveBeenCalledWith([{ role: 'appMenu' }])
+    expect(electron.Menu.setApplicationMenu).toHaveBeenCalled()
+    const serialized = JSON.stringify(electron.Menu.buildFromTemplate.mock.calls)
+    expect(serialized).not.toContain('Plugins')
+    expect(serialized).not.toContain('Updates')
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(harness.updates.check).toHaveBeenCalled()
+  })
+
+  it('posts app_started when an A-SH- App Key is configured', async () => {
+    vi.stubEnv('MATRESHKA_APTABASE_APP_KEY', 'A-SH-test')
+    const electron = await import('electron')
+    const req = { setHeader: vi.fn(), on: vi.fn(), write: vi.fn(), end: vi.fn() }
+    vi.mocked(electron.net.request).mockReturnValue(req as never)
+    await import('../src/main.ts')
+    expect(electron.net.request).toHaveBeenCalledWith({
+      method: 'POST',
+      url: 'http://127.0.0.1:8000/api/v0/event',
+      credentials: 'omit',
+    })
+    expect(req.setHeader).toHaveBeenCalledWith('App-Key', 'A-SH-test')
+    expect(req.write).toHaveBeenCalledWith(expect.stringContaining('"eventName":"app_started"'))
   })
 })

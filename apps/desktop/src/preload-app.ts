@@ -1,7 +1,7 @@
-/** Startup controls for shell documents; application documents receive only the carrier marker. */
+/** Startup controls for shell documents; application documents receive analytics track. */
 
 import { contextBridge, ipcRenderer } from 'electron'
-import { DESKTOP_IPC, type DshDesktopStartupApi } from './ipc.ts'
+import { DESKTOP_IPC, type DshDesktopApplicationApi, type DshDesktopStartupApi } from './ipc.ts'
 import type { DesktopBackendState } from './backend-controller.ts'
 
 const startup: DshDesktopStartupApi = {
@@ -20,5 +20,19 @@ const startup: DshDesktopStartupApi = {
   resetConfiguration: () => ipcRenderer.invoke(DESKTOP_IPC.configurationReset) as Promise<void>,
 }
 
-contextBridge.exposeInMainWorld('dshDesktop', location.protocol === 'dsh-app:' && location.hostname === 'shell'
-  ? startup : { protocolVersion: 1 })
+const application: DshDesktopApplicationApi = {
+  protocolVersion: 1,
+  analytics: {
+    track(name, props) {
+      void ipcRenderer.invoke(DESKTOP_IPC.analyticsTrack, name, props)
+    },
+  },
+}
+
+const exposed = location.protocol === 'dsh-app:' && location.hostname === 'shell'
+  ? startup
+  : location.protocol === 'dsh-app:' && location.hostname === 'app'
+    ? application
+    : { protocolVersion: 1 }
+
+contextBridge.exposeInMainWorld('dshDesktop', exposed)

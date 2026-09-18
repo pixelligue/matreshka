@@ -26,6 +26,18 @@ import { SubmitMachine } from './machine.ts'
 import { DraftEditorRuntime } from './editor/runtime.ts'
 import type { EditorProjection } from './editor/projection.ts'
 
+function trackMatreshkaAnalytics(name: string): void {
+  try {
+    const track = (globalThis as typeof globalThis & {
+      dshDesktop?: { analytics?: { track?: (n: string) => unknown } }
+    }).dshDesktop?.analytics?.track
+    if (typeof track !== 'function') return
+    void track(name)
+  } catch {
+    // Missing or throwing Desktop bridge must not break chrome.
+  }
+}
+
 /** Popup face the shell needs (dismissal only; typed structurally to avoid a value import). */
 export interface PopupDismissFace {
   dismiss(): void
@@ -275,6 +287,7 @@ export class SessionInputShell implements SessionInput {
         this.attachmentFlightSeq += 1
         const flight = this.attachmentFlightSeq
         this.attachmentFlights.set(flight, { controller, attachmentIds })
+        trackMatreshkaAnalytics('ui_send')
         this.commitSend(attachmentIds)
         void this.deps.defaultSink('', attachmentIds, mode, controller.signal).then((outcome) => {
           if (this.disposed || !this.attachmentFlights.delete(flight)) return
@@ -298,7 +311,9 @@ export class SessionInputShell implements SessionInput {
       this.notify('error', this.deps.commandAttachments.unsupportedNotice(before.claim?.token ?? before.draft))
       return
     }
+    const hadContent = before.draft.trim() !== ''
     this.dispatchRun(({ type: 'enter', mode, draft: this.projection.clipboardText }))
+    if (hadContent) trackMatreshkaAnalytics('ui_send')
     const phase = this.snapshot.phase
     if (phase === 'adjudicating' || phase === 'submitting') {
       this.deps.popup?.()?.dismiss()

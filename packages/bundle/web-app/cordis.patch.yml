@@ -30,6 +30,11 @@
       config:
         apiOrigin: http://127.0.0.1:8016
 
+    - id: consult-matreshka
+      name: '@deepseek-ai/dsh-consult-matreshka'
+      config:
+        apiOrigin: http://127.0.0.1:8016
+
 - id: agent-default-model
   config:
     provider: matreshka
@@ -57,6 +62,9 @@
       You are a coding agent powered by the {{model}} model.
       When the user asks you to search the web or look something up online,
       you MUST call the web_search tool. Do not claim you will search without a tool call.
+      On hard coding, review, or analysis steps, call consult with a short goal, question, and only the relevant plan or evidence — never the full transcript.
+      When several tools could apply, call select_tool with the goal and the candidate tool names.
+      Skip consult and select_tool on greetings and trivial questions.
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a
@@ -286,6 +294,7 @@
           - agent-presets
           - plugins
           - archived-sessions
+        documentAction: false
 
     - id: ui-settings-models
       name: '@deepseek-ai/dsh-client-ui-settings-models'
@@ -386,6 +395,8 @@
     # sessions created later. Absent a roster it renders nothing.
     - id: ui-agent-preset
       name: '@deepseek-ai/dsh-client-ui-agent-preset'
+      config:
+        sessionChrome: false
 
     # Plugin configuration: the host-plane sections a user owns, as expandable
     # cards. A namespace this deployment does not expose renders nothing.

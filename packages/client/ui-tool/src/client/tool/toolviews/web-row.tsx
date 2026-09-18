@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { trackMatreshkaAnalytics } from '@deepseek-ai/dsh-client-ui-settings-models/src/client/track.ts'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { webCardModel } from '../models/web-card-model.ts'
@@ -16,6 +18,9 @@ const WEB_TITLE_KEYS = {
 
 /** Lets users expand a completed web search or fetch result. */
 export function WebRow({ toolName, block, inspect, t }: WebRowProps) {
+  useEffect(() => {
+    if (toolName === 'web_search') trackMatreshkaAnalytics('ui_web_search')
+  }, [toolName])
   const model = toolRowModel(toolName, block)
   const web = webCardModel(block)
   const icon = toolName === 'web_fetch' ? <IconBrowseOutline16 size={14} /> : <IconGlobeOutline14 size={14} />

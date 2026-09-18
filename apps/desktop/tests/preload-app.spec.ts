@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from 'vitest'
-import { DESKTOP_IPC, type DshDesktopStartupApi } from '../src/ipc.ts'
+import { DESKTOP_IPC, type DshDesktopApplicationApi, type DshDesktopStartupApi } from '../src/ipc.ts'
 
 const electron = vi.hoisted(() => ({
   contextBridge: { exposeInMainWorld: vi.fn() },
@@ -9,10 +9,22 @@ vi.mock('electron', () => electron)
 
 afterEach(() => { vi.unstubAllGlobals(); vi.clearAllMocks(); vi.resetModules() })
 
-it.each(['dsh-app://app/index.html', 'https://shell/startup.html'])('exposes only the carrier marker to %s', async (url) => {
-  vi.stubGlobal('location', new URL(url))
+it('exposes only the carrier marker to foreign origins', async () => {
+  vi.stubGlobal('location', new URL('https://shell/startup.html'))
   await import('../src/preload-app.ts')
   expect(electron.contextBridge.exposeInMainWorld).toHaveBeenCalledWith('dshDesktop', { protocolVersion: 1 })
+})
+
+it('exposes fire-and-forget analytics on application documents without plugin APIs', async () => {
+  vi.stubGlobal('location', new URL('dsh-app://app/index.html'))
+  await import('../src/preload-app.ts')
+  const api = electron.contextBridge.exposeInMainWorld.mock.calls[0]?.[1] as DshDesktopApplicationApi
+  expect(api.protocolVersion).toBe(1)
+  expect(api).not.toHaveProperty('plugins')
+  expect(api).not.toHaveProperty('updates')
+  expect(api).not.toHaveProperty('backend')
+  api.analytics.track('ui_send')
+  expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith(DESKTOP_IPC.analyticsTrack, 'ui_send', undefined)
 })
 
 it('provides startup controls and a removable state subscription to shell documents', async () => {

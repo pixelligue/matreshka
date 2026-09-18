@@ -2085,6 +2085,9 @@ importers:
       '@deepseek-ai/dsh-cmdline':
         specifier: workspace:^
         version: link:../../boot/cmdline
+      '@deepseek-ai/dsh-consult-matreshka':
+        specifier: workspace:^
+        version: link:../../web/consult-matreshka
       '@deepseek-ai/dsh-cordis-client-runner':
         specifier: workspace:^
         version: link:../../extensions/cordis-client-runner
@@ -2362,6 +2365,10 @@ importers:
         version: 4.4.7(@types/react@18.3.31)(immer@10.2.0)(react@18.3.1)
 
   packages/client/ui-agent-preset:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -2761,6 +2768,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-settings':
         specifier: workspace:^
         version: link:../ui-settings
+      '@deepseek-ai/dsh-client-ui-settings-models':
+        specifier: workspace:^
+        version: link:../ui-settings-models
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
@@ -4541,6 +4551,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-session':
         specifier: workspace:^
         version: link:../ui-session
+      '@deepseek-ai/dsh-client-ui-settings-models':
+        specifier: workspace:^
+        version: link:../ui-settings-models
       '@deepseek-ai/dsh-client-ui-slots':
         specifier: workspace:^
         version: link:../ui-slots
@@ -4811,6 +4824,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-session':
         specifier: workspace:^
         version: link:../ui-session
+      '@deepseek-ai/dsh-client-ui-settings-models':
+        specifier: workspace:^
+        version: link:../ui-settings-models
       '@deepseek-ai/dsh-client-ui-sidebar':
         specifier: workspace:^
         version: link:../ui-sidebar
@@ -11455,6 +11471,25 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+
+  packages/web/consult-matreshka:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-credentials':
+        specifier: workspace:^
+        version: link:../../credentials/credentials
+      '@deepseek-ai/dsh-launch-environment':
+        specifier: workspace:^
+        version: link:../../util/launch-environment
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
 
   packages/web/tool-web:
     dependencies:

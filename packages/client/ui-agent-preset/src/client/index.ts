@@ -25,6 +25,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the Workspace UI navigation service merge (ctx.uiWorkspace).
 import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import { AgentPresetLabel } from './AgentPresetLabel.tsx'
 import type { AgentPresetLabelInjected } from './AgentPresetLabel.tsx'
 import { AgentPresetSeat } from './AgentPresetSeat.tsx'
@@ -58,11 +59,28 @@ export const inject = [
   'slots', 'locale', 'remote', 'remote.agentPresets', 'remote.settings',
 ]
 
+/** Agent-preset surface configuration. */
+export interface Config {
+  /**
+   * When true, register the new-session preset chip and the session-header preset name.
+   * Browser plugins do not receive YAML config; Matreshka defaults this off.
+   * @default false
+   */
+  sessionChrome?: boolean
+}
+
+/** Validated agent-preset surface configuration. */
+export const Config: z<Config> = z.object({
+  sessionChrome: z.boolean().default(false),
+})
+
 /**
  * Mount the roster surfaces: hero chip, session-header label, settings section.
  * @param ctx - the browser plugin context.
+ * @param config - validated plugin config.
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: ClientContext, config: Config = {}): void {
+  const sessionChrome = Config(config).sessionChrome
   const controller = new AgentPresetSettingsController(ctx)
   // One roster, three surfaces. The chip is registered in a later scope, so it
   // subscribes here rather than being reached from this one.
@@ -155,27 +173,31 @@ export function apply(ctx: ClientContext): void {
         seat.stage('cordis', true)
         scope.uiWorkspace.startSession()
       }
-      const chip = scope.slots.register({
-        name: 'conversation.hero.agentPreset',
-        locale: 'settings.agentPreset',
-        inject: seatInjected,
-      }, AgentPresetSeat)
-      const label = scope.slots.register({
-        name: 'conversation.session.header.actions',
-        id: 'agent-preset',
-        // Static session context occupies the header's leading negative-order band.
-        order: -10,
-        locale: 'settings.agentPreset',
-        inject: labelInjected,
-      }, AgentPresetLabel)
+      const chip = sessionChrome
+        ? scope.slots.register({
+          name: 'conversation.hero.agentPreset',
+          locale: 'settings.agentPreset',
+          inject: seatInjected,
+        }, AgentPresetSeat)
+        : undefined
+      const label = sessionChrome
+        ? scope.slots.register({
+          name: 'conversation.session.header.actions',
+          id: 'agent-preset',
+          // Static session context occupies the header's leading negative-order band.
+          order: -10,
+          locale: 'settings.agentPreset',
+          inject: labelInjected,
+        }, AgentPresetLabel)
+        : undefined
       return () => {
         stop()
         settingsMoved()
         rosterReaders.delete(readRoster)
         creatorDraft = undefined
         activeSeat = undefined
-        chip()
-        label()
+        chip?.()
+        label?.()
       }
     }, 'ui-agent-preset: new-session chip and header label')
   })

@@ -40,6 +40,8 @@ function props(overrides: Partial<SignOutRowProps> = {}): SignOutRowProps {
 describe('SignOutRow', () => {
   it('posts logout with the stored bearer and unsets the session', async () => {
     sessionStorage.setItem(MATRESHKA_SESSION_TOKEN, 'sess-1')
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(null, { status: 204 }))))
     const reload = vi.fn()
     const removeCredential = vi.fn(() => Promise.resolve(undefined))
@@ -61,6 +63,8 @@ describe('SignOutRow', () => {
     await waitFor(() => expect(removeCredential).toHaveBeenCalledWith(MATRESHKA_SESSION_TOKEN))
     expect(reload).toHaveBeenCalled()
     expect(sessionStorage.getItem(MATRESHKA_SESSION_TOKEN)).toBeNull()
+    expect(track).toHaveBeenCalledWith('ui_sign_out')
+    expect(track.mock.calls.every(call => call[1] === undefined)).toBe(true)
   })
 
   it('renders the signed-in email without a sign-out control on the profile row', () => {

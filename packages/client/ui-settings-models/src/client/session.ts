@@ -1,6 +1,7 @@
 /** Browser-side Matreshka session helpers for sign-in and sign-out. */
 
 import type { ModelsOperations } from './operations.ts'
+import { trackMatreshkaAnalytics } from './track.ts'
 
 /** Credential reference the Host llm-pi-ai route resolves per request. */
 export const MATRESHKA_SESSION_TOKEN = 'MATRESHKA_SESSION_TOKEN'
@@ -23,6 +24,7 @@ export interface SignOutRequest {
  * @param request - origin, credential operations, and reload.
  */
 export async function performSignOut(request: SignOutRequest): Promise<void> {
+  trackMatreshkaAnalytics('ui_sign_out')
   const token = sessionStorage.getItem(MATRESHKA_SESSION_TOKEN)
   const origin = request.apiOrigin.replace(/\/$/, '')
   try {

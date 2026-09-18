@@ -1,6 +1,7 @@
 /**
  * Settings shell root: the sidebar-foot trigger row plus the centered modal
- * panel (figma 501:29947, 1080x700) with the section nav rail. The shell is
+ * panel. One visible section is a compact sheet (title + Close, no nav rail);
+ * two or more keep the 800px two-column frame and section rail. The shell is
  * a pure composition face — slot-owned text (trigger label, panel title,
  * close label, sections) arrives from registrants through slots; accessible
  * names resolve from localized content (trigger: shell locale; dialog:
@@ -20,6 +21,18 @@ import {
 import type { ConnectionIndicatorState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
 import css from './SettingsRoot.module.css'
+
+function trackMatreshkaAnalytics(name: string): void {
+  try {
+    const track = (globalThis as typeof globalThis & {
+      dshDesktop?: { analytics?: { track?: (n: string) => unknown } }
+    }).dshDesktop?.analytics?.track
+    if (typeof track !== 'function') return
+    void track(name)
+  } catch {
+    // Missing or throwing Desktop bridge must not break chrome.
+  }
+}
 
 const RECOVERY_CONFIRMATION_MS = 2_000
 
@@ -54,6 +67,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
   // projection falls back to the first row when the id is gone.
   const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
   const titleId = useId()
+  const compact = rows.length <= 1
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -67,14 +81,26 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
   const closeButton = useRef<HTMLButtonElement | null>(null)
   useEffect(() => { closeButton.current?.focus() }, [])
 
+  const title = (
+    <div className={compact ? css.panelTitle : css.navTitle} id={titleId}>
+      {renderSlot('settings.header', {})}
+    </div>
+  )
+
   return (
     <div className={css.overlay} role="presentation">
       <div className={css.mask} aria-hidden="true" onClick={onClose} />
-      <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <nav className={css.nav}>
-          <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
-          {rows.length > 1
-            ? (
+      <div
+        className={clsx(css.panel, compact && css.compact)}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
+        {compact
+          ? null
+          : (
+            <nav className={css.nav}>
+              {title}
               <div className={css.navList}>
                 {rows.map(row => (
                   <button
@@ -89,11 +115,11 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
                   </button>
                 ))}
               </div>
-            )
-            : null}
-        </nav>
+            </nav>
+          )}
         <div className={css.content}>
           <div className={css.header}>
+            {compact ? title : null}
             <div className={css.actions}>{renderSlot('settings.action', {})}</div>
             <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
               <IconCloseOutline16 size={14} />
@@ -222,7 +248,10 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
           aria-label={t('trigger')}
           aria-haspopup="dialog"
           aria-expanded={open}
-          onClick={() => { setOpen(true) }}
+          onClick={() => {
+            trackMatreshkaAnalytics('ui_settings_open')
+            setOpen(true)
+          }}
         >
           {renderSlot('settings.trigger', { wide })}
         </button>

@@ -12,7 +12,10 @@ import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.unstubAllGlobals()
+})
 
 
 const t = makeTranslate(zh, commonZh)
@@ -138,8 +141,11 @@ describe('chat row web body', () => {
   }
 
   it('the WebRow collapses to the summary row, expanding to the full search card', () => {
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     const globe = render(<IconGlobeOutline14 />).container.querySelector('svg')!.outerHTML
     const view = render(<WebRow {...rowProps(settledSearch(), 'web_search')} />)
+    expect(track).toHaveBeenCalledWith('ui_web_search')
     // Collapsed: the summary row alone, no card in the DOM.
     expect(view.getByText('网页搜索')).toBeTruthy()
     expect(view.container.querySelector('svg')?.outerHTML).toBe(globe)

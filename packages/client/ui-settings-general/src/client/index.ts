@@ -57,6 +57,11 @@ const NS = 'settings'
 export interface Config {
   /** Section ids omitted from the settings nav (plugins still register them). */
   hiddenSectionIds?: string[]
+  /**
+   * When true, a loopback Host may register Open configuration file.
+   * @default false
+   */
+  documentAction?: boolean
 }
 
 /** Validated settings-shell configuration. */
@@ -64,6 +69,7 @@ export const Config: z<Config> = z.object({
   hiddenSectionIds: z.array(z.string()).default([
     'models', 'agent-presets', 'plugins', 'archived-sessions',
   ]),
+  documentAction: z.boolean().default(false),
 })
 
 /**
@@ -80,7 +86,8 @@ export const inject = ['slots', 'locale', 'connection', 'remote', 'remote.settin
  * @param config - validated plugin config.
  */
 export function apply(ctx: ClientContext, config: Config = {}): void {
-  const hiddenSectionIds = new Set(Config(config).hiddenSectionIds)
+  const resolved = Config(config)
+  const hiddenSectionIds = new Set(resolved.hiddenSectionIds)
   ctx.effect(() => ctx.locale.register(NS, { zh, en, ru }), 'ui-settings-general: dictionaries')
   const connection = ctx.get('connection') as ConnectionHandle
 
@@ -89,7 +96,7 @@ export function apply(ctx: ClientContext, config: Config = {}): void {
   // locale/change re-registration wiring.
   const t = ctx.locale.bind(NS)
   // The shared SettingsScope mirror updates after document commits and reconnects.
-  const documentController = ctx.remote.$host.isLoopback
+  const documentController = ctx.remote.$host.isLoopback && resolved.documentAction
     ? new SettingsDocumentStore(ctx, ctx.settingsScope.describe())
     : undefined
   const documentInjected = documentController === undefined

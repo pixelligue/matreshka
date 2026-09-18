@@ -59,6 +59,7 @@ describe('desktop update coordinator', () => {
       downloadUpdate,
       quitAndInstall,
     } as unknown as AppUpdater
+    const track = vi.fn()
     const coordinator = new DesktopUpdateCoordinator(
       (state) => {
         states.push(state)
@@ -68,6 +69,7 @@ describe('desktop update coordinator', () => {
       updater,
       () => true,
       () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
+      track,
     )
 
     await expect(coordinator.check()).resolves.toEqual({ phase: 'available', version: '1.1.0' })
@@ -80,6 +82,8 @@ describe('desktop update coordinator', () => {
     expect(beforeRestart).toHaveBeenCalledOnce()
     expect(quitAndInstall).toHaveBeenCalledWith(false, true)
     expect(states.map(state => state.phase)).toEqual(['checking', 'available', 'installing', 'ready'])
+    expect(track).toHaveBeenCalledWith('update_check', { outcome: 'available' })
+    expect(track).toHaveBeenCalledWith('update_install', { version: '1.1.0' })
   })
 
   it('queues install behind an in-flight check instead of returning the check result', async () => {
@@ -125,15 +129,47 @@ describe('desktop update coordinator', () => {
       downloadUpdate: vi.fn(),
       quitAndInstall: vi.fn(),
     } as unknown as AppUpdater
+    const track = vi.fn()
     const coordinator = new DesktopUpdateCoordinator(
       state => state,
       async () => {},
       updater,
       () => false,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/',
+      track,
     )
     await expect(coordinator.check()).resolves.toEqual({ phase: 'idle' })
     expect(setFeedURL).not.toHaveBeenCalled()
     expect(checkForUpdates).not.toHaveBeenCalled()
+    expect(track).not.toHaveBeenCalled()
+  })
+
+  it('tracks a packaged check with no update and a failed check', async () => {
+    const track = vi.fn()
+    const idleUpdater = {
+      autoDownload: true,
+      autoInstallOnAppQuit: true,
+      setFeedURL: vi.fn(),
+      checkForUpdates: vi.fn(async () => ({ isUpdateAvailable: false, updateInfo: { version: '1.0.0' } })),
+      downloadUpdate: vi.fn(),
+      quitAndInstall: vi.fn(),
+    } as unknown as AppUpdater
+    const idle = new DesktopUpdateCoordinator(
+      state => state, async () => {}, idleUpdater, () => true,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/', track,
+    )
+    await expect(idle.check()).resolves.toEqual({ phase: 'idle' })
+    expect(track).toHaveBeenCalledWith('update_check', { outcome: 'none' })
+    track.mockClear()
+    const failing = new DesktopUpdateCoordinator(
+      state => state, async () => {}, {
+        ...idleUpdater,
+        checkForUpdates: vi.fn(async () => { throw new Error('offline') }),
+      } as unknown as AppUpdater, () => true,
+      () => 'http://127.0.0.1:8016/v1/updates/desktop/win-x64/', track,
+    )
+    await expect(failing.check()).resolves.toMatchObject({ phase: 'error' })
+    expect(track).toHaveBeenCalledWith('update_check', { outcome: 'error' })
   })
 
   it('does not install when the operator declines an available update', async () => {

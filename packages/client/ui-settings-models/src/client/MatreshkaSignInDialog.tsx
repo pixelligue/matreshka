@@ -11,6 +11,7 @@ import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsOperations } from './operations.ts'
 import type { en } from './locales.ts'
 import { MATRESHKA_SESSION_EMAIL, MATRESHKA_SESSION_TOKEN } from './session.ts'
+import { trackMatreshkaAnalytics } from './track.ts'
 import styles from './MatreshkaSignInDialog.module.css'
 
 export { DEFAULT_MATRESHKA_API_ORIGIN } from '../api-origin.ts'
@@ -104,6 +105,7 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
         }
         sessionStorage.setItem(MATRESHKA_SESSION_TOKEN, body.token)
         sessionStorage.setItem(MATRESHKA_SESSION_EMAIL, email)
+        trackMatreshkaAnalytics('ui_sign_in')
         complete()
       } catch {
         setError(t('signInNetwork'))

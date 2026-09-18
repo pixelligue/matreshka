@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-matreshka-aptabase-analytics.md
+2026-09-18-matreshka-aptabase-analytics.md: 79aadf00f0d39ef2bf79cd762375c02e7f6dfd81
+2026-09-18-matreshka-aptabase-analytics.zh.md: e83f2f4e703b5f10f3e1e992244a361ce834405a

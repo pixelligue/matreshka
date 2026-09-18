@@ -21,6 +21,12 @@
 - id: directory-picker
   disabled: true
 
+- id: ui-trajectory
+  disabled: true
+
+- id: session-log-download
+  disabled: true
+
 - id: connection
   inject:
     - credentials

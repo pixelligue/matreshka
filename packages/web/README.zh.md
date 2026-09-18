@@ -22,7 +22,7 @@ kind: "package-group"
 <a id="packages"></a>
 ## 包
 
-七个包分别承担 web 角色；完整词汇与约定以子系统参考文档为准。
+八个包分别承担 web 角色；完整词汇与约定以子系统参考文档为准。
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
@@ -31,6 +31,7 @@ kind: "package-group"
 | [`web-search-perplexity/`](web-search-perplexity/README.zh.md) | 通过 Perplexity 搜索 web | 注册到 `ctx.web` |
 | [`web-search-deepseek/`](web-search-deepseek/README.zh.md) | 通过 DeepSeek 原生搜索搜索 web | 注册到 `ctx.web` |
 | [`web-search-matreshka/`](web-search-matreshka/README.zh.md) | 通过 Keenable（无需密钥）和经 Matreshka API 的 LLMTOKENAPI 搜索 web | 注册到 `ctx.web` |
+| [`consult-matreshka/`](consult-matreshka/README.zh.md) | 用会话令牌向 Matreshka API 发送 consult 与 tool-select | 注册到 `ctx.tools` |
 | [`web-fetch-http/`](web-fetch-http/README.zh.md) | 匿名抓取公共 HTTP(S) 页面 | 注册到 `ctx.web` |
 | [`tool-web/`](tool-web/README.zh.md) | 向模型公开 `web_search` 与 `web_fetch` | 注册到 `ctx.tools` |
 

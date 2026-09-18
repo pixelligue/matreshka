@@ -29,6 +29,7 @@ import {
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
 import { FLAT_SESSION_ORDER_KEY } from '../stores.ts'
 import { WorkspacePickFlow } from '../WorkspacePicker.tsx'
+import { trackMatreshkaAnalytics } from '@deepseek-ai/dsh-client-ui-settings-models/src/client/track.ts'
 import css from './WorkspaceBrowser.module.css'
 
 /**
@@ -414,6 +415,7 @@ function SessionTree({
                 onCreate={() => {
                   if (group.workspaceId !== undefined) {
                     setGroupExpanded(group.key, true)
+                    trackMatreshkaAnalytics('ui_new_session')
                     startSession(group.workspaceId)
                   }
                 }}

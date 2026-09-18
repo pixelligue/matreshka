@@ -14,6 +14,11 @@ import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { apply, inject } from '@deepseek-ai/dsh-client-ui-agent-preset/client'
+
+/** Isolated tests that exercise the chip and header must opt into session chrome. */
+function applyChrome(ctx: Context): void {
+  apply(ctx, { sessionChrome: true })
+}
 import { AgentPresetLabel } from '../src/client/AgentPresetLabel.tsx'
 import type { AgentPresetLabelInjected } from '../src/client/AgentPresetLabel.tsx'
 import { AgentPresetSection } from '../src/client/AgentPresetSection.tsx'
@@ -339,7 +344,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('conversation', {} as never)
     ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    const fiber = ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply })
+    const fiber = ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome })
     await fiber.await()
 
     const chip = slots.entries('conversation.hero.agentPreset')[0]!
@@ -354,6 +359,21 @@ describe('ui-agent-preset apply', () => {
     conversation()
   })
 
+  it('omits the new-session chip and header label when sessionChrome is false', async () => {
+    const { ctx, slots } = await bench()
+    declareRoot(slots)
+    const conversation = declareConversation(slots)
+    ctx.provide('conversation', {} as never)
+    ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
+    ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
+    const fiber = ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply })
+    await fiber.await()
+    expect(slots.entries('conversation.hero.agentPreset')).toHaveLength(0)
+    expect(slots.entries('conversation.session.header.actions')).toHaveLength(0)
+    await fiber.dispose()
+    conversation()
+  })
+
   it('moves the chip when the default changes on the settings surface', async () => {
     const { ctx, slots, moveDefault, remote } = await bench()
     declareRoot(slots)
@@ -361,7 +381,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('conversation', {} as never)
     ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
 
     const chip = slots.entries('conversation.hero.agentPreset')[0]!
     const seat = (chip.inject as unknown as () => AgentPresetSeatInjected)()
@@ -400,7 +420,7 @@ describe('ui-agent-preset apply', () => {
     const sessions = sessionsDouble(sessionState)
     ctx.provide('sessions', sessions as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const section = (slots.entries('settings.section')[0]!
       .inject as unknown as () => AgentPresetSectionInjected)()
     const seat = (slots.entries('conversation.hero.agentPreset')[0]!
@@ -460,7 +480,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('conversation', {} as never)
     ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
 
     const chip = slots.entries('conversation.hero.agentPreset')[0]!
     const seat = (chip.inject as unknown as () => AgentPresetSeatInjected)()
@@ -499,7 +519,7 @@ describe('ui-agent-preset apply', () => {
     const sessions = sessionsDouble(state)
     ctx.provide('sessions', sessions as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const chip = (slots.entries('conversation.hero.agentPreset')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
@@ -529,7 +549,7 @@ describe('ui-agent-preset apply', () => {
     })
     ctx.provide('sessions', sessions as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const chip = (slots.entries('conversation.hero.agentPreset')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
@@ -555,7 +575,7 @@ describe('ui-agent-preset apply', () => {
     const sessions = sessionsDouble(state)
     ctx.provide('sessions', sessions as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const chip = (slots.entries('conversation.hero.agentPreset')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
 
@@ -578,7 +598,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('conversation', {} as never)
     ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const label = (slots.entries('conversation.session.header.actions')[0]!
       .inject as unknown as () => AgentPresetLabelInjected)()
 
@@ -595,7 +615,7 @@ describe('ui-agent-preset apply', () => {
     ctx.provide('sessions', sessionsDouble({ byId: {} }) as never)
     const uiWorkspace = uiWorkspaceDouble()
     ctx.provide('uiWorkspace', uiWorkspace as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const section = (slots.entries('settings.section')[0]!.inject as unknown as () => AgentPresetSectionInjected)()
     const seat = (slots.entries('conversation.hero.agentPreset')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()
@@ -641,7 +661,7 @@ describe('ui-agent-preset apply', () => {
     const sessions = sessionsDouble(state)
     ctx.provide('sessions', sessions as never)
     ctx.provide('uiWorkspace', uiWorkspaceDouble() as never)
-    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply }).await()
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'uiWorkspace'], apply: applyChrome }).await()
     const section = (slots.entries('settings.section')[0]!.inject as unknown as () => AgentPresetSectionInjected)()
     const seat = (slots.entries('conversation.hero.agentPreset')[0]!
       .inject as unknown as () => AgentPresetSeatInjected)()

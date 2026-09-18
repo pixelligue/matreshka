@@ -8,6 +8,9 @@ import { resolveDesktopAutoUpdateConfig } from '../scripts/desktop-auto-update-e
 import type { DesktopUpdateState } from './ipc.ts'
 const { autoUpdater } = electronUpdater
 
+/** Optional Aptabase sink for packaged update checks. */
+export type DesktopUpdateAnalytics = (name: 'update_check' | 'update_install', props?: Record<string, string>) => void
+
 /** Checks, downloads, and installs one complete Desktop release. */
 export class DesktopUpdateCoordinator {
   private availableVersion: string | undefined
@@ -20,6 +23,7 @@ export class DesktopUpdateCoordinator {
    * @param updater - Electron artifact updater; replaceable for tests.
    * @param enabled - whether this packaged process carries updater configuration.
    * @param feedUrl - generic-provider feed URL for this build's target.
+   * @param track - optional product-analytics sink.
    */
   constructor(
     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
@@ -31,9 +35,18 @@ export class DesktopUpdateCoordinator {
     private readonly feedUrl: () => string = () => (
       resolveDesktopAutoUpdateConfig(process.env, process.platform, process.arch).publicUrl
     ),
+    private track: DesktopUpdateAnalytics = () => {},
   ) {
     this.updater.autoDownload = false
     this.updater.autoInstallOnAppQuit = false
+  }
+
+  /**
+   * Attach product analytics after the shell client exists.
+   * @param track - allowlisted Aptabase sink.
+   */
+  setAnalytics(track: DesktopUpdateAnalytics): void {
+    this.track = track
   }
 
   /** Check the configured Desktop release stream and retain an available version. */
@@ -65,11 +78,15 @@ export class DesktopUpdateCoordinator {
       const result = await this.updater.checkForUpdates()
       const version = result?.isUpdateAvailable === true ? result.updateInfo.version : undefined
       this.availableVersion = version
-      return version === undefined
-        ? this.publish({ phase: 'idle' })
-        : this.publish({ phase: 'available', version })
+      if (version === undefined) {
+        this.track('update_check', { outcome: 'none' })
+        return this.publish({ phase: 'idle' })
+      }
+      this.track('update_check', { outcome: 'available' })
+      return this.publish({ phase: 'available', version })
     } catch (error) {
       this.availableVersion = undefined
+      this.track('update_check', { outcome: 'error' })
       return this.publish({
         phase: 'error',
         message: error instanceof Error ? error.message : String(error),
@@ -86,6 +103,7 @@ export class DesktopUpdateCoordinator {
     try {
       await this.updater.downloadUpdate()
       this.availableVersion = undefined
+      this.track('update_install', { version })
       const ready = this.publish({ phase: 'ready', version })
       await this.beforeRestart()
       this.updater.quitAndInstall(false, true)

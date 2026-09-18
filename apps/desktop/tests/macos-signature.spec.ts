@@ -56,6 +56,8 @@ describe('desktop macOS release signature', () => {
       '**/*.{node,dylib,dll,so,exe}',
       '**/@vscode/ripgrep/bin/rg',
     ]))
+    expect(config.productName).toBe('Matreshka')
+    expect(config.artifactName).toBe('deepseek-harness-${version}-${os}-${arch}.${ext}')
     expect(config).toMatchObject({
       appId: RELEASE_ENVIRONMENT.DSH_DESKTOP_APP_ID,
       mac: {

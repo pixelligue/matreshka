@@ -12,7 +12,7 @@ async function main() {
   function render(state) {
     const failed = state.phase === 'error'
     document.querySelector('main').setAttribute('aria-busy', String(!failed))
-    document.querySelector('#spinner').hidden = failed
+    document.querySelector('#mark').hidden = failed
     document.querySelector('#title').textContent = failed ? messages.startupFailed : messages.startupLoading
     document.querySelector('#description').textContent = failed ? messages.startupErrorDescription : messages.startupLoadingDescription
     document.querySelector('#error').hidden = !failed

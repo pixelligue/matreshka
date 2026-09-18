@@ -21,6 +21,7 @@ export const DESKTOP_IPC = {
   updatesCheck: 'dsh-desktop:updates-check',
   updatesInstall: 'dsh-desktop:updates-install',
   updatesState: 'dsh-desktop:updates-state',
+  analyticsTrack: 'dsh-desktop:analytics-track',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -52,6 +53,17 @@ export interface DshDesktopApi {
     install(): Promise<void>
     subscribe(listener: (state: DesktopUpdateState) => void): () => void
   }
+}
+
+/** Named product event forwarded to the shell allowlist. */
+export interface DshDesktopAnalyticsApi {
+  track(name: string, props?: Record<string, string | number>): void
+}
+
+/** Application-document bridge: protocol marker plus analytics, no plugin or update APIs. */
+export interface DshDesktopApplicationApi {
+  readonly protocolVersion: 1
+  readonly analytics: DshDesktopAnalyticsApi
 }
 
 /** Startup-page controls, unavailable to backend-provided application documents. */

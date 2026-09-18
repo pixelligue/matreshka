@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-matreshka-startup-chrome.md
+2026-09-18-matreshka-startup-chrome.md: ff1da959185a3b7da2a02c070b3bfa5c93e8f2b2
+2026-09-18-matreshka-startup-chrome.zh.md: 5422a1de2ea860aee0553cc45a6053b9c72c40a2

@@ -162,6 +162,8 @@ describe('MatreshkaSignInDialog', () => {
   it('dismisses after a successful login stores the session token', async () => {
     const complete = vi.fn()
     const storeCredential = vi.fn(() => Promise.resolve(undefined))
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(
       JSON.stringify({ token: 'sess-1' }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -181,6 +183,8 @@ describe('MatreshkaSignInDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: en.signInSubmit }))
     await waitFor(() => expect(storeCredential).toHaveBeenCalledWith(MATRESHKA_SESSION_TOKEN, 'sess-1'))
     expect(complete).toHaveBeenCalled()
+    expect(track).toHaveBeenCalledWith('ui_sign_in')
+    expect(track.mock.calls.every(call => call[1] === undefined)).toBe(true)
     expect(fetch).toHaveBeenCalledWith(
       `${DEFAULT_MATRESHKA_API_ORIGIN}/v1/auth/login`,
       expect.objectContaining({ method: 'POST' }),
@@ -219,6 +223,8 @@ describe('MatreshkaSignInDialog', () => {
 
   it('keeps the page with locale-owned copy on 401', async () => {
     const complete = vi.fn()
+    const track = vi.fn()
+    vi.stubGlobal('dshDesktop', { analytics: { track } })
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(
       JSON.stringify({ detail: 'Invalid email or password' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } },
@@ -229,6 +235,7 @@ describe('MatreshkaSignInDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: en.signInSubmit }))
     expect((await screen.findByRole('alert')).textContent).toBe(en.signInInvalid)
     expect(complete).not.toHaveBeenCalled()
+    expect(track).not.toHaveBeenCalled()
     expect(document.querySelector('[data-matreshka-sign-in]')).toBeTruthy()
   })
 
