@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = Field(default=60 * 60 * 24 * 7, gt=0)
     update_artifact_root: str | None = None
     openrouter_api_key: str | None = None
+    amadeus_client_id: str | None = None
+    amadeus_client_secret: str | None = None
+    amadeus_hostname: str = "test.api.amadeus.com"
 
     @field_validator(
         "database_url",
@@ -45,13 +48,26 @@ class Settings(BaseSettings):
             raise ValueError("must not be empty")
         return value
 
-    @field_validator("update_artifact_root", "openrouter_api_key", mode="before")
+    @field_validator(
+        "update_artifact_root",
+        "openrouter_api_key",
+        "amadeus_client_id",
+        "amadeus_client_secret",
+        mode="before",
+    )
     @classmethod
     def empty_optional_is_absent(cls, value: object) -> object:
         if value is None:
             return None
         if isinstance(value, str) and not value.strip():
             return None
+        return value
+
+    @field_validator("amadeus_hostname", mode="before")
+    @classmethod
+    def amadeus_host_default(cls, value: object) -> object:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return "test.api.amadeus.com"
         return value
 
 

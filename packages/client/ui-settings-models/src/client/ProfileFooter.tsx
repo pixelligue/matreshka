@@ -2,12 +2,13 @@
  * Sidebar-foot profile: nesting-doll avatar, signed-in email, and Sign out.
  * Sits above Settings.
  */
+import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type { ModelsOperations } from './operations.ts'
-import { MATRESHKA_SESSION_EMAIL } from './session.ts'
+import { readSessionEmail, SESSION_EVENT } from './session.ts'
 import css from './ProfileFooter.module.css'
 
 /** Public URL of the nesting-doll mark used as the profile avatar. */
@@ -34,8 +35,13 @@ export type ProfileFooterProps =
  */
 export function ProfileFooter(props: ProfileFooterProps): ReactNode {
   const { wide, t } = props
-  const email = sessionStorage.getItem(MATRESHKA_SESSION_EMAIL)
-  const label = email !== null && email.length > 0 ? email : t('profile')
+  const [email, setEmail] = useState(readSessionEmail)
+  useEffect(() => {
+    const sync = (): void => { setEmail(readSessionEmail()) }
+    window.addEventListener(SESSION_EVENT, sync)
+    return () => { window.removeEventListener(SESSION_EVENT, sync) }
+  }, [])
+  const label = email.length > 0 ? email : t('profile')
 
   const avatar = (
     <img

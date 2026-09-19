@@ -15,7 +15,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from matreshka_api.models import User  # noqa: F401  # register metadata
+from matreshka_api.models import PluginConnection, User  # noqa: F401  # register metadata
 from matreshka_api.settings import Settings
 
 HEALTH_PING_TIMEOUT_SECONDS = 2.0

@@ -22,7 +22,7 @@ The `web/` packages let models search the public web and fetch HTTP(S) pages thr
 <a id="packages"></a>
 ## Packages
 
-Eight packages play the web roles; the subsystem reference owns the exhaustive vocabulary and contracts.
+Nine packages play the web roles; the subsystem reference owns the exhaustive vocabulary and contracts.
 
 | Package | Role | ctx key |
 |---|---|---|
@@ -32,6 +32,7 @@ Eight packages play the web roles; the subsystem reference owns the exhaustive v
 | [`web-search-deepseek/`](web-search-deepseek/README.md) | Searches the web through DeepSeek native search | registers on `ctx.web` |
 | [`web-search-matreshka/`](web-search-matreshka/README.md) | Searches the web through Keenable (keyless) and LLMTOKENAPI via the Matreshka API | registers on `ctx.web` |
 | [`consult-matreshka/`](consult-matreshka/README.md) | Posts consult and tool-select to the Matreshka API with the session token | registers on `ctx.tools` |
+| [`cis-plugins-matreshka/`](cis-plugins-matreshka/README.md) | Loads enabled CIS plugin skills and proxies amoCRM, Bitrix24, and Tilda calls | registers on `ctx.skills` / `ctx.tools` |
 | [`web-fetch-http/`](web-fetch-http/README.md) | Fetches public HTTP(S) pages anonymously | registers on `ctx.web` |
 | [`tool-web/`](tool-web/README.md) | Exposes `web_search` and `web_fetch` to the model | registers on `ctx.tools` |
 

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-18-matreshka-sign-out-overlay.md
+2026-09-18-matreshka-sign-out-overlay.md: c016dc5b55552bf4d3f4818227f8e9ab8b2a641a
+2026-09-18-matreshka-sign-out-overlay.zh.md: 8f6f875d94ce4182ab7467f27a1296789f3ba278

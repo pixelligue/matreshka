@@ -58,6 +58,7 @@ function declare(slots: SlotRegistry): () => void {
       children: {
         'settings.section': { kind: 'list', scope: 'root' },
         'settings.onboarding': { kind: 'list', scope: 'root' },
+        'shell.overlay': { kind: 'list', scope: 'root' },
       },
     } as never,
     () => null,
@@ -97,12 +98,12 @@ describe('ui-settings-models apply', () => {
     expect(injected.hooks.snapshot).toBe(injected.controller.store)
     expect(typeof injected.operations.writeSettings).toBe('function')
     const onboarding = before.slots.entries('settings.onboarding')
-    expect(onboarding).toHaveLength(2)
+    expect(onboarding).toHaveLength(1)
     expect(onboarding.find(entry => entry.options.id === 'welcome-notice')).toMatchObject({
       component: WelcomeNotice,
       options: { id: 'welcome-notice', order: -100 },
     })
-    const signIn = onboarding.find(entry => entry.options.id === 'matreshka-sign-in')!
+    const signIn = before.slots.entries('shell.overlay').find(entry => entry.options.id === 'matreshka-sign-in')!
     expect(signIn.component).toBe(MatreshkaSignInDialog)
     expect(signIn.options).toMatchObject({ id: 'matreshka-sign-in', order: 0 })
     const signInInjected = (
@@ -120,7 +121,8 @@ describe('ui-settings-models apply', () => {
     declare(after.slots)
     await Promise.resolve()
     expect(after.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
-    expect(after.slots.entries('settings.onboarding')).toHaveLength(2)
+    expect(after.slots.entries('settings.onboarding')).toHaveLength(1)
+    expect(after.slots.entries('shell.overlay')).toHaveLength(1)
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
   })
@@ -129,7 +131,7 @@ describe('ui-settings-models apply', () => {
     const b = await bench()
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply, Config }, { apiOrigin: 'http://127.0.0.1:9' }).await()
-    const signIn = b.slots.entries('settings.onboarding').find(entry => entry.options.id === 'matreshka-sign-in')!
+    const signIn = b.slots.entries('shell.overlay').find(entry => entry.options.id === 'matreshka-sign-in')!
     const injected = (
       signIn.inject as unknown as () => import('../src/client/MatreshkaSignInDialog.tsx').MatreshkaSignInInjected
     )()
@@ -177,10 +179,12 @@ describe('ui-settings-models apply', () => {
     redeclare()
     expect(b.slots.entries('settings.section')).toHaveLength(0)
     expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
+    expect(b.slots.entries('shell.overlay')).toHaveLength(0)
     declare(b.slots)
     await Promise.resolve()
     expect(b.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
-    expect(b.slots.entries('settings.onboarding')).toHaveLength(2)
+    expect(b.slots.entries('settings.onboarding')).toHaveLength(1)
+    expect(b.slots.entries('shell.overlay')).toHaveLength(1)
     // The locale path also recovers through the same ledger re-check.
     b.locale.setLocale('en')
     expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('Models')
@@ -218,6 +222,7 @@ describe('ui-settings-models apply', () => {
     await fiber.dispose()
     expect(b.slots.entries('settings.section')).toHaveLength(0)
     expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
+    expect(b.slots.entries('shell.overlay')).toHaveLength(0)
     // The (ns, locale) seats are free again — the dictionary disposers ran.
     expect(() => b.locale.register('settings.models', 'zh', {})).not.toThrow()
     expect(() => b.locale.register('settings.models', 'en', {})).not.toThrow()

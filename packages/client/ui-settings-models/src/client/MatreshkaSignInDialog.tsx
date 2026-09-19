@@ -1,16 +1,18 @@
 /**
- * Blocking Matreshka email/password onboarding. Login hits the product API
- * and stores the session token as a Host credential. The gate is a full-viewport
- * page: application chrome stays hidden until a session exists.
+ * Blocking Matreshka email/password overlay. Login hits the product API
+ * and stores the session token as a Host credential. The page covers the
+ * viewport until a session exists, including after Sign out while a chat
+ * session is already open.
  */
 
 import { useEffect, useId, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { ModelsOperations } from './operations.ts'
 import type { en } from './locales.ts'
-import { MATRESHKA_SESSION_EMAIL, MATRESHKA_SESSION_TOKEN } from './session.ts'
+import { MATRESHKA_SESSION_TOKEN, readSessionToken, SESSION_EVENT, writeSession } from './session.ts'
 import { trackMatreshkaAnalytics } from './track.ts'
 import styles from './MatreshkaSignInDialog.module.css'
 
@@ -29,17 +31,17 @@ export interface MatreshkaSignInInjected {
 
 /** Slot owner props plus the feature's injected dependencies. */
 export type MatreshkaSignInDialogProps =
-  PropsRuntime<'settings.onboarding'> & InjectFace<MatreshkaSignInInjected>
+  PropsRuntime<'shell.overlay'> & InjectFace<MatreshkaSignInInjected>
 
-type SignInPhase = 'checking' | 'needed'
+type SignInPhase = 'checking' | 'needed' | 'signed-in'
 
 /**
  * Prompt for Matreshka email/password until a session token is stored.
- * @param props - settings-shell owner state and injected operations.
- * @returns the full-viewport sign-in page, or null while the step decides.
+ * @param props - overlay seat plus injected operations.
+ * @returns the full-viewport sign-in page, or null while the overlay decides.
  */
 export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactNode {
-  const { complete, operations, t, apiOrigin } = props
+  const { operations, t, apiOrigin } = props
   const titleId = useId()
   const [phase, setPhase] = useState<SignInPhase>('checking')
   const [email, setEmail] = useState('')
@@ -49,21 +51,31 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
 
   useEffect(() => {
     let cancelled = false
+    const hideIfSessionExists = (configured: boolean): void => {
+      if (cancelled) return
+      if (configured && readSessionToken().length > 0) {
+        setPhase('signed-in')
+        return
+      }
+      setPhase('needed')
+    }
     void operations.describeCredential(MATRESHKA_SESSION_TOKEN).then(
-      (info) => {
-        if (cancelled) return
-        if (info?.configured) {
-          complete()
-          return
-        }
-        setPhase('needed')
-      },
-      () => {
-        if (!cancelled) setPhase('needed')
-      },
+      (info) => { hideIfSessionExists(info?.configured === true) },
+      () => { hideIfSessionExists(false) },
     )
-    return () => { cancelled = true }
-  }, [complete, operations])
+    const onSession = (): void => {
+      if (readSessionToken().length === 0) {
+        setPhase('needed')
+        return
+      }
+      setPhase('signed-in')
+    }
+    window.addEventListener(SESSION_EVENT, onSession)
+    return () => {
+      cancelled = true
+      window.removeEventListener(SESSION_EVENT, onSession)
+    }
+  }, [operations])
 
   useEffect(() => {
     if (phase !== 'needed') return
@@ -93,7 +105,7 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
           setError(t('signInNetwork'))
           return
         }
-        const body = await response.json() as { token?: unknown }
+        const body = await response.json() as { token?: unknown; email?: unknown }
         if (typeof body.token !== 'string' || body.token.length === 0) {
           setError(t('signInNetwork'))
           return
@@ -103,10 +115,10 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
           setError(t('signInNetwork'))
           return
         }
-        sessionStorage.setItem(MATRESHKA_SESSION_TOKEN, body.token)
-        sessionStorage.setItem(MATRESHKA_SESSION_EMAIL, email)
+        const signedInEmail = typeof body.email === 'string' && body.email.length > 0 ? body.email : email
+        writeSession(body.token, signedInEmail)
         trackMatreshkaAnalytics('ui_sign_in')
-        complete()
+        setPhase('signed-in')
       } catch {
         setError(t('signInNetwork'))
       } finally {

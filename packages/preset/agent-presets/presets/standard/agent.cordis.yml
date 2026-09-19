@@ -144,6 +144,12 @@
   config:
     - id: compaction-basic
       name: '@deepseek-ai/dsh-compaction-basic'
+      config:
+        modelPolicies:
+          - provider: matreshka
+            model: matrena
+            thresholdRatio: 0.2
+            retainTokens: 42000
 
     - id: command-compact
       name: '@deepseek-ai/dsh-command-compact'

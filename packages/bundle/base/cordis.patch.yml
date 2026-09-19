@@ -116,7 +116,7 @@
             models:
               - id: matrena
                 name: Matrena
-                contextWindow: 262144
+                contextWindow: 1048576
                 maxTokens: 32768
 
     - id: session-persistence-jsonl

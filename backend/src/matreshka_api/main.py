@@ -15,6 +15,7 @@ from matreshka_api.auth import router as auth_router
 from matreshka_api.chat import router as chat_router
 from matreshka_api.updates import router as updates_router
 from matreshka_api.consult import router as consult_router
+from matreshka_api.plugins import router as plugins_router
 from matreshka_api.tool_select import router as tool_select_router
 from matreshka_api.web_search import router as web_search_router
 from matreshka_api.db import (
@@ -93,6 +94,7 @@ def create_app(
     application.include_router(web_search_router)
     application.include_router(consult_router)
     application.include_router(tool_select_router)
+    application.include_router(plugins_router)
     application.add_api_route(
         "/health",
         health,

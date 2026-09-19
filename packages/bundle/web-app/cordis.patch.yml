@@ -35,6 +35,11 @@
       config:
         apiOrigin: http://127.0.0.1:8016
 
+    - id: cis-plugins-matreshka
+      name: '@deepseek-ai/dsh-cis-plugins-matreshka'
+      config:
+        apiOrigin: http://127.0.0.1:8016
+
 - id: agent-default-model
   config:
     provider: matreshka
@@ -52,7 +57,7 @@
         models:
           - id: matrena
             name: Matrena
-            contextWindow: 262144
+            contextWindow: 1048576
             maxTokens: 32768
 
 - id: system-prompt
@@ -267,6 +272,9 @@
     - id: ui-sidebar
       name: '@deepseek-ai/dsh-client-ui-sidebar'
 
+    - id: ui-plugins-matreshka
+      name: '@deepseek-ai/dsh-client-ui-plugins-matreshka'
+
     # The right Sidebar: one docking surface per session over ui-dockkit.
     - id: ui-sidebar-right
       name: '@deepseek-ai/dsh-client-ui-sidebar-right'
@@ -317,6 +325,8 @@
       name: '@deepseek-ai/dsh-client-ui-chat'
       config:
         hideInternalTranscript: true
+        hideTurnUsage: true
+        hideSessionStats: true
 
     # Official occupants for the generic sidebar and conversation brand slots.
     - id: ui-brand-official

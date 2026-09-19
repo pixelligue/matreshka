@@ -43,6 +43,7 @@ The kernel packages boot and serve the page; the UI feature packages present it.
 | [`ui-layout/`](ui-layout/README.md) | Arranges the main application regions | — |
 | [`ui-dockkit/`](ui-dockkit/README.md) | Provides docking layout operations and React components | — |
 | [`ui-sidebar/`](ui-sidebar/README.md) | Presents workspace and session navigation | — |
+| [`ui-plugins-matreshka/`](ui-plugins-matreshka/README.md) | Sidebar Plugins tab and CIS catalog pane | — |
 | [`ui-sidebar-right/`](ui-sidebar-right/README.md) | Owns the right Sidebar and its tab types | `ctx.sidebarRight`, `ctx.sidebarRightTabs` |
 | [`ui-sidebar-documentpreview/`](ui-sidebar-documentpreview/README.md) | Displays documents in right Sidebar tabs | `ctx.documentPreviews` |
 | [`resources/`](resources/README.md) | Unified resource model: protocol providers behind the `useResource` session standard hook | `ctx.resources` |

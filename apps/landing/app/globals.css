@@ -1,0 +1,27 @@
+@import 'tailwindcss';
+
+@keyframes hero-matreshka-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  25% {
+    transform: rotate(-8deg) translateY(-1px);
+  }
+  50% {
+    transform: rotate(0deg) translateY(1px);
+  }
+  75% {
+    transform: rotate(8deg) translateY(-1px);
+  }
+}
+
+.hero-mark {
+  transform-origin: 50% 90%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-mark {
+    animation: hero-matreshka-wobble 1.8s ease-in-out infinite;
+  }
+}

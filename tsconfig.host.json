@@ -309,6 +309,7 @@
     { "path": "./packages/web/web-search-deepseek" },
     { "path": "./packages/web/web-search-matreshka" },
     { "path": "./packages/web/consult-matreshka" },
+    { "path": "./packages/web/cis-plugins-matreshka" },
     { "path": "./packages/web/web-fetch-http" },
     { "path": "./packages/web/tool-web" },
     { "path": "./packages/spill/spill" },

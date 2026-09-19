@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-client-ui-settings-models` is the Models settings page of the dsh web client: users configure API keys (stored write-only under the profile's credential reference), edit each provider's model list, and hand-declare custom pi-ai routes, with provider rows and one editor card at a time. The page joins the provider directory, the settings document, and the credential descriptions into one shared snapshot, so a row's state stays consistent across all three. It also walks first-run users through two ordered steps — a versioned internal-testing notice and a full-viewport Matreshka email/password sign-in.
+`dsh-client-ui-settings-models` is the Models settings page of the dsh web client: users configure API keys (stored write-only under the profile's credential reference), edit each provider's model list, and hand-declare custom pi-ai routes, with provider rows and one editor card at a time. The page joins the provider directory, the settings document, and the credential descriptions into one shared snapshot, so a row's state stays consistent across all three. It also shows a versioned internal-testing notice on first run, and a full-viewport Matreshka email/password sign-in whenever no session exists.
 
 ## Table of Contents
 
@@ -45,7 +45,7 @@ The add flow is a card carrying the dormant-directory provider select — a bare
 
 ### First-run onboarding
 
-After the versioned notice step completes, the Matreshka sign-in step covers the viewport until a session token is stored. Email and password POST to `{apiOrigin}/v1/auth/login`. `apiOrigin` is Host composition config on this plugin (default `http://127.0.0.1:8016`). A 200 stores `MATRESHKA_SESSION_TOKEN` and dismisses the page. There is no skip. While the step is still reading whether a session exists, it paints nothing and does not mark `#root` inert.
+The Matreshka sign-in page occupies `shell.overlay` and covers the viewport until a session token is stored, including after Sign out and while a chat session is already open. Email and password POST to `{apiOrigin}/v1/auth/login`. `apiOrigin` is Host composition config on this plugin (default `http://127.0.0.1:8016`). A 200 stores `MATRESHKA_SESSION_TOKEN` and dismisses the page. There is no skip. While the overlay is still reading whether a session exists, it paints nothing and does not mark `#root` inert. The versioned internal-testing notice remains a `settings.onboarding` step on an empty hero.
 
 ### Extension slots
 
@@ -71,7 +71,7 @@ Each settings write carries the card's current `revision`, so a concurrent write
 
 ### Onboarding coordinator
 
-The notice step owns its exact copy in `src/client/locales.ts` and its acknowledgement version in `src/onboarding-copy.ts`; on loopback it compares and writes `ui-onboarding.welcomeNoticeVersion` through the existing settings API, and only an explicit Continue records the current version. A non-loopback browser cannot use that Host-only namespace, so acknowledgement is process-local and the notice returns after reload. The Matreshka sign-in step is a full-viewport body portal that inerts `#root` only while visible; it stores the session token through `credentials.set` under `MATRESHKA_SESSION_TOKEN` and does not change provider settings.
+The notice step owns its exact copy in `src/client/locales.ts` and its acknowledgement version in `src/onboarding-copy.ts`; on loopback it compares and writes `ui-onboarding.welcomeNoticeVersion` through the existing settings API, and only an explicit Continue records the current version. A non-loopback browser cannot use that Host-only namespace, so acknowledgement is process-local and the notice returns after reload. The Matreshka sign-in page is a full-viewport body portal on `shell.overlay` that inerts `#root` only while visible; it stores the session token through `credentials.set` under `MATRESHKA_SESSION_TOKEN` and does not change provider settings. Clearing the browser session (Sign out) shows the page again without waiting for an empty-hero onboarding step.
 
 </details>
 

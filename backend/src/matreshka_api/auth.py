@@ -36,6 +36,7 @@ class LoginRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     token: str
+    email: str
 
 
 def hash_password(password: str) -> str:
@@ -122,7 +123,7 @@ async def login(
         str(user.id),
         ex=settings.session_ttl_seconds,
     )
-    return LoginResponse(token=token)
+    return LoginResponse(token=token, email=user.email)
 
 
 @router.post("/logout", status_code=204)

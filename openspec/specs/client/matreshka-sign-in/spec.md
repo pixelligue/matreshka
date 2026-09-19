@@ -8,7 +8,7 @@ Blocks first use of the Matreshka GUI until the operator signs in with email and
 
 ### Requirement: Blocking sign-in screen
 
-Until a valid Matreshka session exists, the GUI MUST show a full-viewport sign-in page with the Matreshka mark, the title Matreshka, email and password fields, and a submit control. The page MUST cover the viewport so application chrome is not visible behind it. The application root MUST stay inert. There is no "configure later" that skips sign-in. There is no sign-up control. While the step is still deciding whether a session exists, it MUST paint nothing and MUST NOT mark the root inert.
+Until a valid Matreshka session exists, the GUI MUST show a full-viewport sign-in page with the Matreshka mark, the title Matreshka, email and password fields, and a submit control. The page MUST cover the viewport so application chrome is not visible behind it, including when the current chat session is not blank. The sign-in occupant MUST live on `shell.overlay` so it is not a one-shot empty-hero onboarding step. The application root MUST stay inert. There is no "configure later" that skips sign-in. There is no sign-up control. While the overlay is still deciding whether a session exists, it MUST paint nothing and MUST NOT mark the root inert.
 
 #### Scenario: First launch without a session
 
@@ -36,9 +36,14 @@ All product-visible strings on the sign-in page MUST come from the feature local
 
 ### Requirement: Sign out returns to sign-in
 
-Settings → General MUST offer a Sign out control whose copy is locale-owned. Activating it MUST call `POST {apiOrigin}/v1/auth/logout` with the stored bearer token (best-effort), MUST remove the Matreshka session credential, and MUST return the operator to the blocking sign-in page.
+Settings → General and the sidebar footer MUST offer a Sign out control whose copy is locale-owned. Activating it MUST call `POST {apiOrigin}/v1/auth/logout` with the stored bearer token (best-effort), MUST remove the Matreshka session credential, and MUST return the operator to the blocking sign-in page even if the current chat session is not blank.
 
 #### Scenario: Sign out clears the session
 
 - **WHEN** a signed-in operator activates Sign out
 - **THEN** the session credential is removed and the sign-in page covers the viewport again
+
+#### Scenario: Sign out from a filled chat session
+
+- **WHEN** a signed-in operator activates Sign out while viewing a non-blank chat
+- **THEN** the sign-in page covers the viewport again without requiring an empty-hero onboarding step

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_MATRESHKA_API_ORIGIN,
@@ -8,6 +8,7 @@ import {
   MatreshkaSignInDialog,
 } from '../src/client/MatreshkaSignInDialog.tsx'
 import type { MatreshkaSignInDialogProps } from '../src/client/MatreshkaSignInDialog.tsx'
+import { clearSession, writeSession } from '../src/client/session.ts'
 import { en } from '../src/client/locales.ts'
 
 const useResource = (() => ({
@@ -21,6 +22,8 @@ const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  sessionStorage.clear()
+  localStorage.clear()
   document.getElementById('root')?.remove()
 })
 
@@ -37,9 +40,6 @@ const useSessionPendingInteraction: MatreshkaSignInDialogProps['useSessionPendin
 function props(overrides: Partial<MatreshkaSignInDialogProps> = {}): MatreshkaSignInDialogProps {
   const unusedHook = (() => { throw new Error('unused standard hook') }) as never
   return {
-    stepId: 'matreshka-sign-in',
-    complete: vi.fn(),
-    openSection: vi.fn(),
     useSessions: unusedHook,
     useSessionPendingInteraction,
     usePanelInfo,
@@ -80,11 +80,9 @@ describe('MatreshkaSignInDialog', () => {
     expect(document.getElementById('root')?.inert).not.toBe(true)
   })
 
-  it('does not complete or paint after unmount during a pending describe', async () => {
+  it('does not paint after unmount during a pending describe', async () => {
     let resolveDescribe: (value: { configured: boolean; writable: boolean }) => void = () => {}
-    const complete = vi.fn()
     const view = render(<MatreshkaSignInDialog {...props({
-      complete,
       operations: {
         describeCredential: () => new Promise((resolve) => { resolveDescribe = resolve }),
         storeCredential: vi.fn(() => Promise.resolve(undefined)),
@@ -96,7 +94,6 @@ describe('MatreshkaSignInDialog', () => {
     view.unmount()
     resolveDescribe({ configured: true, writable: true })
     await Promise.resolve()
-    expect(complete).not.toHaveBeenCalled()
     expect(document.querySelector('[data-matreshka-sign-in]')).toBeNull()
     expect(document.getElementById('root')?.inert).not.toBe(true)
   })
@@ -160,7 +157,6 @@ describe('MatreshkaSignInDialog', () => {
   })
 
   it('dismisses after a successful login stores the session token', async () => {
-    const complete = vi.fn()
     const storeCredential = vi.fn(() => Promise.resolve(undefined))
     const track = vi.fn()
     vi.stubGlobal('dshDesktop', { analytics: { track } })
@@ -169,7 +165,6 @@ describe('MatreshkaSignInDialog', () => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     ))))
     await showPage({
-      complete,
       operations: {
         describeCredential: vi.fn(() => Promise.resolve(undefined)),
         storeCredential,
@@ -182,7 +177,9 @@ describe('MatreshkaSignInDialog', () => {
     fireEvent.change(screen.getByLabelText(en.signInPassword), { target: { value: 'secret' } })
     fireEvent.click(screen.getByRole('button', { name: en.signInSubmit }))
     await waitFor(() => expect(storeCredential).toHaveBeenCalledWith(MATRESHKA_SESSION_TOKEN, 'sess-1'))
-    expect(complete).toHaveBeenCalled()
+    expect(localStorage.getItem(MATRESHKA_SESSION_TOKEN)).toBe('sess-1')
+    expect(localStorage.getItem('MATRESHKA_SESSION_EMAIL')).toBe('op@localhost')
+    expect(screen.queryByRole('heading', { name: en.signInTitle })).toBeNull()
     expect(track).toHaveBeenCalledWith('ui_sign_in')
     expect(track.mock.calls.every(call => call[1] === undefined)).toBe(true)
     expect(fetch).toHaveBeenCalledWith(
@@ -222,32 +219,28 @@ describe('MatreshkaSignInDialog', () => {
   })
 
   it('keeps the page with locale-owned copy on 401', async () => {
-    const complete = vi.fn()
     const track = vi.fn()
     vi.stubGlobal('dshDesktop', { analytics: { track } })
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(
       JSON.stringify({ detail: 'Invalid email or password' }),
       { status: 401, headers: { 'Content-Type': 'application/json' } },
     ))))
-    await showPage({ complete })
+    await showPage()
     fireEvent.change(screen.getByLabelText(en.signInEmail), { target: { value: 'op@localhost' } })
     fireEvent.change(screen.getByLabelText(en.signInPassword), { target: { value: 'wrong' } })
     fireEvent.click(screen.getByRole('button', { name: en.signInSubmit }))
     expect((await screen.findByRole('alert')).textContent).toBe(en.signInInvalid)
-    expect(complete).not.toHaveBeenCalled()
     expect(track).not.toHaveBeenCalled()
     expect(document.querySelector('[data-matreshka-sign-in]')).toBeTruthy()
   })
 
   it('keeps the page with locale-owned copy when login is unreachable', async () => {
-    const complete = vi.fn()
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))))
-    await showPage({ complete })
+    await showPage()
     fireEvent.change(screen.getByLabelText(en.signInEmail), { target: { value: 'op@localhost' } })
     fireEvent.change(screen.getByLabelText(en.signInPassword), { target: { value: 'secret' } })
     fireEvent.click(screen.getByRole('button', { name: en.signInSubmit }))
     expect((await screen.findByRole('alert')).textContent).toBe(en.signInNetwork)
-    expect(complete).not.toHaveBeenCalled()
   })
 
   it('keeps the page when login returns a non-401 failure', async () => {
@@ -291,10 +284,8 @@ describe('MatreshkaSignInDialog', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(en.signInNetwork)
   })
 
-  it('completes immediately when a session credential is already stored', async () => {
-    const complete = vi.fn()
+  it('keeps the page when the Host credential exists but this window has no token', async () => {
     render(<MatreshkaSignInDialog {...props({
-      complete,
       operations: {
         describeCredential: vi.fn(() => Promise.resolve({
           configured: true,
@@ -306,8 +297,44 @@ describe('MatreshkaSignInDialog', () => {
         discoverModels: vi.fn(),
       },
     })} />)
-    await waitFor(() => expect(complete).toHaveBeenCalled())
-    expect(screen.queryByRole('heading', { name: en.signInTitle })).toBeNull()
+    expect(await screen.findByRole('heading', { name: en.signInTitle })).toBeTruthy()
+  })
+
+  it('stays hidden when a session credential is already stored', async () => {
+    sessionStorage.setItem(MATRESHKA_SESSION_TOKEN, 'sess-1')
+    localStorage.setItem(MATRESHKA_SESSION_TOKEN, 'sess-1')
+    render(<MatreshkaSignInDialog {...props({
+      operations: {
+        describeCredential: vi.fn(() => Promise.resolve({
+          configured: true,
+          writable: true,
+        })),
+        storeCredential: vi.fn(() => Promise.resolve(undefined)),
+        removeCredential: vi.fn(() => Promise.resolve(undefined)),
+        writeSettings: vi.fn(),
+        discoverModels: vi.fn(),
+      },
+    })} />)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: en.signInTitle })).toBeNull())
     expect(document.getElementById('root')?.inert).not.toBe(true)
+  })
+
+  it('returns to the page when the browser session is cleared', async () => {
+    writeSession('sess-1', 'op@localhost')
+    render(<MatreshkaSignInDialog {...props({
+      operations: {
+        describeCredential: vi.fn(() => Promise.resolve({
+          configured: true,
+          writable: true,
+        })),
+        storeCredential: vi.fn(() => Promise.resolve(undefined)),
+        removeCredential: vi.fn(() => Promise.resolve(undefined)),
+        writeSettings: vi.fn(),
+        discoverModels: vi.fn(),
+      },
+    })} />)
+    await waitFor(() => expect(screen.queryByRole('heading', { name: en.signInTitle })).toBeNull())
+    act(() => { clearSession() })
+    expect(await screen.findByRole('heading', { name: en.signInTitle })).toBeTruthy()
   })
 })

@@ -3,6 +3,7 @@ import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ChatNodeViewProps, TurnTailOwnerProps } from '../contract/slots.ts'
 import { MessageIconActions } from './MessageIconActions.tsx'
 import { TurnTimePanel, TurnUsagePanel } from './TurnUsagePanel.tsx'
+import { chatTranscriptPolicy } from '../transcript-policy.ts'
 import { assistantText } from './turn-assistant.ts'
 import css from './TurnTailNodeView.module.css'
 
@@ -51,7 +52,8 @@ export const TurnTailNodeView = memo(function TurnTailNodeView({
         extraActions={assistantActions}
         usageAction={(
           <>
-            {data.tokenUsage !== undefined && <TurnUsagePanel usage={data.tokenUsage} t={t} />}
+            {!chatTranscriptPolicy.hideTurnUsage && data.tokenUsage !== undefined
+              && <TurnUsagePanel usage={data.tokenUsage} t={t} />}
             {runMs !== undefined && (
               <TurnTimePanel
                 runMs={runMs}

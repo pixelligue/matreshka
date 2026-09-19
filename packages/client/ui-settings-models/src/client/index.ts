@@ -1,7 +1,7 @@
 /**
  * Models settings and product-onboarding plugin, browser half. It registers
- * the Models page plus the ordered internal-testing notice and Matreshka
- * full-page sign-in. The Host settings and credential contracts stay behind
+ * the Models page, the internal-testing notice, and the Matreshka full-page
+ * sign-in overlay. The Host settings and credential contracts stay behind
  * their existing wire APIs.
  * Export discipline:
  * packages/client/AGENTS.md.
@@ -10,6 +10,7 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the shell's SlotMap merge (the 'settings.section' entry).
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
@@ -154,8 +155,8 @@ export function apply(ctx: ClientContext, config: Config = {}): void {
     order: -100,
     inject: welcomeInjected,
   }, WelcomeNotice))
-  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-    name: 'settings.onboarding',
+  ctx.slots.inject('shell.overlay', () => ctx.slots.register({
+    name: 'shell.overlay',
     id: 'matreshka-sign-in',
     order: 0,
     inject: matreshkaSignInInjected,

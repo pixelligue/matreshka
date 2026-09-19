@@ -3,6 +3,8 @@ import { hideInternalCommand, internalRowVisibility, chatTranscriptPolicy } from
 
 afterEach(() => {
   chatTranscriptPolicy.hideInternal = false
+  chatTranscriptPolicy.hideTurnUsage = false
+  chatTranscriptPolicy.hideSessionStats = false
 })
 
 describe('chatTranscriptPolicy', () => {

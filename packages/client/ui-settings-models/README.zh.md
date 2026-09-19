@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-client-ui-settings-models` 是 dsh Web 客户端的 Models 设置页面：用户可以配置 API 密钥（以只写方式存入 profile 的凭据引用之下）、编辑每个提供方的模型列表，并手工声明自定义 pi-ai 路由；页面以提供方行展示，一次只展开一张编辑卡片。该页面把提供方目录、设置文档与凭据描述合并为一个共享快照，因此行的状态在三个方面始终一致。它还会带首次运行的用户走两个有序步骤——版本化内测声明，以及铺满视口的 Matreshka 邮箱/密码登录。
+`dsh-client-ui-settings-models` 是 dsh Web 客户端的 Models 设置页面：用户可以配置 API 密钥（以只写方式存入 profile 的凭据引用之下）、编辑每个提供方的模型列表，并手工声明自定义 pi-ai 路由；页面以提供方行展示，一次只展开一张编辑卡片。该页面把提供方目录、设置文档与凭据描述合并为一个共享快照，因此行的状态在三个方面始终一致。它还会在首次运行时显示版本化内测声明，并在没有会话时显示铺满视口的 Matreshka 邮箱/密码登录。
 
 ## 目录
 
@@ -45,7 +45,7 @@ kind: "package-reference"
 
 ### 首次运行引导
 
-版本化声明步骤完成后，Matreshka 登录步骤会铺满视口，直到存入会话令牌。邮箱与密码 POST 到 `{apiOrigin}/v1/auth/login`。`apiOrigin` 是本插件的 Host 组合配置（默认 `http://127.0.0.1:8016`）。200 将 `MATRESHKA_SESSION_TOKEN` 存入凭据并关闭该页。没有跳过入口。步骤仍在读取是否已有会话时不绘制任何内容，也不把 `#root` 标为 inert。
+Matreshka 登录页占用 `shell.overlay`，并铺满视口直到存入会话令牌，包括退出登录之后以及聊天会话已经打开时。邮箱与密码 POST 到 `{apiOrigin}/v1/auth/login`。`apiOrigin` 是本插件的 Host 组合配置（默认 `http://127.0.0.1:8016`）。200 将 `MATRESHKA_SESSION_TOKEN` 存入凭据并关闭该页。没有跳过入口。覆盖层仍在读取是否已有会话时不绘制任何内容，也不把 `#root` 标为 inert。版本化内测声明仍是空 hero 上的 `settings.onboarding` 步骤。
 
 ### 扩展 slot
 
@@ -71,7 +71,7 @@ kind: "package-reference"
 
 ### 引导协调器
 
-声明步骤在 `src/client/locales.ts` 中持有精确文案，并在 `src/onboarding-copy.ts` 中持有确认版本；回环时它通过既有 settings API 比较并写入 `ui-onboarding.welcomeNoticeVersion`，且只有显式点击「继续」才会记录当前版本。非回环浏览器无法使用这个仅限宿主的 namespace，因此确认只保留在进程内，刷新后声明会再次出现。Matreshka 登录步骤是铺满视口的 body portal，仅在可见时将 `#root` 标为 inert；它通过 `credentials.set` 把会话令牌存到 `MATRESHKA_SESSION_TOKEN`，且不改变任何提供方设置。
+声明步骤在 `src/client/locales.ts` 中持有精确文案，并在 `src/onboarding-copy.ts` 中持有确认版本；回环时它通过既有 settings API 比较并写入 `ui-onboarding.welcomeNoticeVersion`，且只有显式点击「继续」才会记录当前版本。非回环浏览器无法使用这个仅限宿主的 namespace，因此确认只保留在进程内，刷新后声明会再次出现。Matreshka 登录页是 `shell.overlay` 上铺满视口的 body portal，仅在可见时将 `#root` 标为 inert；它通过 `credentials.set` 把会话令牌存到 `MATRESHKA_SESSION_TOKEN`，且不改变任何提供方设置。清除浏览器会话（退出登录）会再次显示该页，而不必等待空 hero 的引导步骤。
 
 </details>
 

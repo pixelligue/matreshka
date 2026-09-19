@@ -10,6 +10,7 @@ export const vitestExecArgv = process.allowedNodeEnvironmentFlags.has('--webstor
 
 /**
  * Transform standard TypeScript decorators before Vite's default parser sees source files.
+ * Also emits React JSX for `apps/landing` (Next.js keeps `jsx: preserve`).
  * @returns a pre-transform Vite plugin shared by source-mode test configurations.
  */
 export function standardDecoratorPlugin() {
@@ -18,7 +19,9 @@ export function standardDecoratorPlugin() {
     enforce: 'pre' as const,
     transform(code: string, id: string) {
       const file = id.split('?', 1)[0]!
-      if (!/\.[cm]?tsx?$/.test(file) || !decoratorSyntax.test(code)) return
+      const landingTsx = /apps[/\\]landing[/\\].+\.tsx$/.test(file)
+      if (!/\.[cm]?tsx?$/.test(file)) return
+      if (!landingTsx && !decoratorSyntax.test(code)) return
       const result = ts.transpileModule(code, {
         fileName: file,
         compilerOptions: {

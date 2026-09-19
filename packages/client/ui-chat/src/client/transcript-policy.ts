@@ -3,6 +3,10 @@
 /** When true, system prompt, context injections, and permission commands stay off the Chat surface. */
 export const chatTranscriptPolicy = {
   hideInternal: false,
+  /** When true, the per-turn usage pill and dialog stay off the Chat surface. */
+  hideTurnUsage: false,
+  /** When true, the composer-dock session stats pills stay unregistered. */
+  hideSessionStats: false,
 }
 
 /**

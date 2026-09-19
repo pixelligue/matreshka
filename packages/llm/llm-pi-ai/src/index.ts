@@ -42,7 +42,7 @@
  *             maxTokens: 4096
  *           - id: acme-think
  *             name: Acme Think
- *             contextWindow: 262144
+ *             contextWindow: 1048576
  *             maxTokens: 32768
  *             # key = selectable level, value = wire spelling; only off may
  *             # leave the value empty (supported, send nothing).

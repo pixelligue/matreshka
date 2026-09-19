@@ -50,11 +50,17 @@ const CHAT_NODE_INJECT: ChatNodeTurnDataInjected = {
 export interface Config {
   /** Hide system-prompt, context-injection, and permission command rows. */
   hideInternalTranscript?: boolean
+  /** Hide the per-turn token-usage pill and dialog. */
+  hideTurnUsage?: boolean
+  /** Hide the composer-dock session stats pills. */
+  hideSessionStats?: boolean
 }
 
 /** Validated Chat presentation config. */
 export const Config: z<Config> = z.object({
   hideInternalTranscript: z.boolean().default(true),
+  hideTurnUsage: z.boolean().default(true),
+  hideSessionStats: z.boolean().default(true),
 })
 
 /** Services required by the Chat target and its presentation registrations. */
@@ -69,7 +75,10 @@ export const inject = [
  * @param config - optional presentation config.
  */
 export function apply(ctx: Context, config: Config = {}): void {
-  chatTranscriptPolicy.hideInternal = Config(config).hideInternalTranscript === true
+  const resolved = Config(config)
+  chatTranscriptPolicy.hideInternal = resolved.hideInternalTranscript === true
+  chatTranscriptPolicy.hideTurnUsage = resolved.hideTurnUsage === true
+  chatTranscriptPolicy.hideSessionStats = resolved.hideSessionStats === true
   const chatSources = new WeakMap<SessionBinding, ObservableSnapshot<ChatSnapshot>>()
   const chatSource = (binding: SessionBinding): ObservableSnapshot<ChatSnapshot> => {
     let source = chatSources.get(binding)
@@ -183,10 +192,12 @@ export function apply(ctx: Context, config: Config = {}): void {
     return disposeView
   })
 
-  ctx.slots.inject('conversation.composer.dock', () =>
-    ctx.slots.register({
-      name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS,
-    }, StatsPills))
+  if (!resolved.hideSessionStats) {
+    ctx.slots.inject('conversation.composer.dock', () =>
+      ctx.slots.register({
+        name: 'conversation.composer.dock', id: 'stats', order: 0, locale: NS,
+      }, StatsPills))
+  }
 
   ctx.slots.inject('conversation.approval.detail', () =>
     ctx.slots.register({ name: 'conversation.approval.detail' }, ApprovalCommand))

@@ -39,10 +39,9 @@ const CHILD_NAMES = Object.keys(CHILD_SPECS) as Array<keyof typeof CHILD_SPECS>
  * `hiddenSectionIds` keeps them off this projection.
  */
 const PRODUCT_SECTIONS: readonly string[] = ['general']
-/** Onboarding steps the web-app roster registers, in coordinator order; both come from ui-settings-models. */
+/** Onboarding steps the web-app roster registers, in coordinator order. */
 const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
   { id: 'welcome-notice', order: -100 },
-  { id: 'matreshka-sign-in', order: 0 },
 ]
 
 describe('ui-settings-general shell', () => {
@@ -110,7 +109,7 @@ describe('ui-settings-general shell', () => {
     await Promise.resolve()
     expect(listener).toHaveBeenCalledOnce()
     off()
-  })
+  }, COLD_BOOT_TIMEOUT_MS)
 
   it('re-registers after the declarer reloads: the cascade removes the shell, the rebuilt declaration takes it back', async ({ start }) => {
     const c = await start()

@@ -63,6 +63,7 @@ def test_login_valid_credentials_returns_token(harness: AppHarness) -> None:
     assert response.status_code == 200
     token = response.json()["token"]
     assert isinstance(token, str) and token
+    assert response.json()["email"] == "op@example.com"
 
 
 def test_login_unknown_email_or_wrong_password_is_401_without_session(

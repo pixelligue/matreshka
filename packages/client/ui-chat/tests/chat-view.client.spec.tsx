@@ -38,6 +38,7 @@ import {
   TurnMaxTokensNodeView, UnknownNodeView, UserMessageNodeView,
 } from '../src/client/chat/MessageItem.tsx'
 import { TurnTailNodeView } from '../src/client/chat/TurnTailNodeView.tsx'
+import { chatTranscriptPolicy } from '../src/client/transcript-policy.ts'
 import { TurnProcessNodeView } from '../src/client/chat/TurnProcessNodeView.tsx'
 import { SystemPromptNodeView } from '../src/client/chat/SystemPromptRow.tsx'
 import { formatRunDuration } from '../src/client/chat/message-chrome.ts'
@@ -51,6 +52,7 @@ const useResource = (() => ({ status: 'none' as const, value: undefined, failure
 afterEach(() => {
   cleanup()
   vi.unstubAllGlobals()
+  chatTranscriptPolicy.hideTurnUsage = false
 })
 // Keyless create() persists under the bare declared key; clear between cases
 // so one harness's selection cannot rehydrate into the next.
@@ -1930,6 +1932,31 @@ describe('ChatView', () => {
     // no usage pill to click.
     expect(view.getByRole('button', { name: /用时/ })).toBeTruthy()
     expect(view.queryByRole('button', { name: /用量/ })).toBeNull()
+  })
+
+  it('hides the turn-usage pill when the product policy asks', () => {
+    chatTranscriptPolicy.hideTurnUsage = true
+    const first: AssistantMessageNode = {
+      kind: 'assistant', seq: 15, time: 15_000, turn: 1, step: 1, blocks: [{ kind: 'text', text: 'draft' }],
+    }
+    const second: AssistantMessageNode = {
+      kind: 'assistant', seq: 16, time: 16_000, turn: 1, step: 2, blocks: [{ kind: 'text', text: 'final' }],
+    }
+    const h = makeHarness({
+      nodes: [user(1, 'hi'), first, second],
+      turnTimings: new Map([[1, { startTime: 1_000, endTime: 20_000 }]]),
+      turnEnds: new Map([[1, 20]]),
+      turnUsages: new Map([[1, {
+        uncachedInputTokens: 5_060,
+        cacheReadTokens: 4_940,
+        outputTokens: 100,
+        totalTokens: 10_100,
+      }]]),
+    })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(view.queryByRole('button', { name: /用量/ })).toBeNull()
+    expect(view.getByRole('button', { name: /用时/ })).toBeTruthy()
+    chatTranscriptPolicy.hideTurnUsage = false
   })
 
   it('withholds ttft and throughput while the turn is still running', () => {
