@@ -7,7 +7,7 @@ import logging
 from typing import Literal
 
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from matreshka_api.auth import CurrentUserDep
@@ -17,12 +17,20 @@ from matreshka_api.openrouter import (
     CONSULT_MAX_BYTES,
     FLASH_MODEL,
     OPENROUTER_CHAT_URL,
+    estimate_usd,
     openrouter_headers,
     openrouter_key,
     reject_over_cap,
     usage_from_payload,
     utf8_size,
     upstream_http_error,
+)
+from matreshka_api.usage import (
+    UsageObservation,
+    openrouter_charge,
+    provider_request_id,
+    record_usage,
+    token_counts,
 )
 
 router = APIRouter(prefix="/v1", tags=["consult"])
@@ -83,6 +91,7 @@ async def consult(
     body: ConsultRequest,
     settings: SettingsDep,
     http_client: HttpClientDep,
+    request: Request,
 ) -> ConsultResponse:
     if not body.goal.strip() or not body.question.strip():
         raise HTTPException(status_code=400, detail="goal and question must not be empty")
@@ -95,43 +104,66 @@ async def consult(
         f"Goal:\n{body.goal}\n\nQuestion:\n{body.question}\n\n"
         f"Plan:\n{body.plan}\n\nEvidence:\n{body.evidence}"
     )
+    outbound_payload = {
+        "model": FLASH_MODEL,
+        "stream": False,
+        "max_tokens": 256,
+        "messages": [
+            {"role": "system", "content": CONSULT_SYSTEM},
+            {"role": "user", "content": user_text},
+        ],
+    }
+    payload: object = None
+    response: httpx.Response | None = None
+    status = "transport_error"
+    user_id = _user.id
+    assert user_id is not None
     try:
-        response = await http_client.post(
-            OPENROUTER_CHAT_URL,
-            json={
-                "model": FLASH_MODEL,
-                "stream": False,
-                "max_tokens": 256,
-                "messages": [
-                    {"role": "system", "content": CONSULT_SYSTEM},
-                    {"role": "user", "content": user_text},
-                ],
-            },
-            headers=openrouter_headers(key),
+        try:
+            response = await http_client.post(
+                OPENROUTER_CHAT_URL,
+                json=outbound_payload,
+                headers=openrouter_headers(key),
+            )
+        except httpx.RequestError as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=redact_secret("Upstream unavailable", key),
+            ) from exc
+        status = "http_error"
+        if response.status_code >= 400:
+            raise upstream_http_error(key, response.text)
+        status = "invalid_response"
+        try:
+            payload = response.json()
+        except ValueError as exc:
+            raise HTTPException(status_code=502, detail="Upstream error") from exc
+        if not isinstance(payload, dict):
+            raise HTTPException(status_code=502, detail="Upstream error")
+        choices = payload.get("choices")
+        if not isinstance(choices, list) or not choices:
+            raise HTTPException(status_code=502, detail="Upstream error")
+        message = choices[0].get("message") if isinstance(choices[0], dict) else None
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, str) or not content.strip():
+            raise HTTPException(status_code=502, detail="Upstream error")
+        logger.warning("consult model=%s", FLASH_MODEL)
+        parsed = parse_verdict(content)
+        usage = usage_from_payload(FLASH_MODEL, payload)
+        if usage is not None:
+            parsed = parsed.model_copy(update={"usage": ConsultUsage.model_validate(usage)})
+        status = "completed"
+        return parsed
+    finally:
+        counts = token_counts(payload)
+        estimate = (
+            estimate_usd(FLASH_MODEL, counts.input_tokens, counts.output_tokens)
+            if counts.input_tokens is not None and counts.output_tokens is not None else None
         )
-    except httpx.RequestError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=redact_secret("Upstream unavailable", key),
-        ) from exc
-    if response.status_code >= 400:
-        raise upstream_http_error(key, response.text)
-    try:
-        payload: object = response.json()
-    except ValueError as exc:
-        raise HTTPException(status_code=502, detail="Upstream error") from exc
-    if not isinstance(payload, dict):
-        raise HTTPException(status_code=502, detail="Upstream error")
-    choices = payload.get("choices")
-    if not isinstance(choices, list) or not choices:
-        raise HTTPException(status_code=502, detail="Upstream error")
-    message = choices[0].get("message") if isinstance(choices[0], dict) else None
-    content = message.get("content") if isinstance(message, dict) else None
-    if not isinstance(content, str) or not content.strip():
-        raise HTTPException(status_code=502, detail="Upstream error")
-    logger.warning("consult model=%s", FLASH_MODEL)
-    parsed = parse_verdict(content)
-    usage = usage_from_payload(FLASH_MODEL, payload)
-    if usage is not None:
-        parsed = parsed.model_copy(update={"usage": ConsultUsage.model_validate(usage)})
-    return parsed
+        await record_usage(request.app.state.engine, user_id, UsageObservation(
+            operation="consult", provider="openrouter", model=FLASH_MODEL,
+            status=status, tokens=counts, charge=openrouter_charge(payload, estimate),
+            request_bytes=len(json.dumps(outbound_payload, ensure_ascii=False).encode("utf-8")),
+            result_bytes=len(response.content) if response is not None else None,
+            provider_request_id=provider_request_id(payload),
+        ))

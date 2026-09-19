@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Annotated
 
 import httpx
@@ -14,6 +14,13 @@ from starlette.responses import StreamingResponse
 from matreshka_api.auth import CurrentUserDep
 from matreshka_api.db import SettingsDep
 from matreshka_api.sse import data_frame
+from matreshka_api.usage import (
+    UsageObservation,
+    llmtokenapi_charge,
+    provider_request_id,
+    record_usage,
+    token_counts,
+)
 
 # Public ids the desktop may send. Upstream vendor ids never leave this process.
 PUBLIC_TO_UPSTREAM = {
@@ -71,6 +78,7 @@ def rewrite_sse_event(event: str, public_id: str) -> str:
 async def iter_upstream_sse(
     response: httpx.Response,
     public_id: str,
+    observe: Callable[[str], None] | None = None,
 ) -> AsyncIterator[bytes]:
     buf = ""
     saw_done = False
@@ -79,11 +87,15 @@ async def iter_upstream_sse(
             buf += raw.decode("utf-8", errors="replace")
             while "\n\n" in buf:
                 event, buf = buf.split("\n\n", 1)
+                if observe is not None:
+                    observe(event)
                 framed = rewrite_sse_event(event, public_id)
                 if "data: [DONE]" in framed:
                     saw_done = True
                 yield (framed + "\n\n").encode("utf-8")
         if buf.strip():
+            if observe is not None:
+                observe(buf)
             framed = rewrite_sse_event(buf, public_id)
             if "data: [DONE]" in framed:
                 saw_done = True
@@ -124,6 +136,11 @@ async def create_chat_completion(
     payload["model"] = upstream_model
     payload["stream"] = True
     tools = payload.get("tools")
+    tool_schema_bytes = len(json.dumps(tools, ensure_ascii=False).encode("utf-8")) if isinstance(tools, list) else 0
+    request_bytes = len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
+    user_id = _user.id
+    assert user_id is not None
+    engine = request.app.state.engine
     logger.warning(
         "proxy model=%s tools=%s keys=%s",
         model,
@@ -132,14 +149,21 @@ async def create_chat_completion(
     )
     headers = {"Authorization": f"Bearer {settings.llmtokenapi_api_key}"}
     try:
-        request = http_client.build_request(
+        upstream_request = http_client.build_request(
             "POST",
             url,
             json=payload,
             headers=headers,
         )
-        response = await http_client.send(request, stream=True)
+        request_bytes = len(upstream_request.content)
+        response = await http_client.send(upstream_request, stream=True)
     except httpx.RequestError as exc:
+        await record_usage(engine, user_id, UsageObservation(
+            operation="chat", provider="llmtokenapi", model=model,
+            status="transport_error", request_bytes=request_bytes,
+            tool_schema_bytes=tool_schema_bytes,
+            tool_count=len(tools) if isinstance(tools, list) else 0,
+        ))
         raise HTTPException(
             status_code=502,
             detail=redact_secret("Upstream unavailable", settings.llmtokenapi_api_key),
@@ -148,6 +172,12 @@ async def create_chat_completion(
     if response.status_code >= 400:
         error_body = (await response.aread()).decode("utf-8", errors="replace")
         await response.aclose()
+        await record_usage(engine, user_id, UsageObservation(
+            operation="chat", provider="llmtokenapi", model=model,
+            status="http_error", request_bytes=request_bytes,
+            tool_schema_bytes=tool_schema_bytes,
+            tool_count=len(tools) if isinstance(tools, list) else 0,
+        ))
         raise HTTPException(
             status_code=502,
             detail=redact_secret(
@@ -158,8 +188,45 @@ async def create_chat_completion(
             else f"Upstream error ({response.status_code})",
         )
 
+    observed: dict[str, object] = {}
+
+    def observe(event: str) -> None:
+        for line in event.splitlines():
+            if not line.startswith("data:"):
+                continue
+            try:
+                value = json.loads(line[5:].strip())
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, dict):
+                if "usage" in value:
+                    observed["usage"] = value["usage"]
+                    if "id" in value:
+                        observed["id"] = value["id"]
+                elif "id" in value and "id" not in observed:
+                    observed["id"] = value["id"]
+
+    async def metered_stream() -> AsyncIterator[bytes]:
+        status = "interrupted"
+        result_bytes = 0
+        try:
+            async for chunk in iter_upstream_sse(response, model, observe):
+                result_bytes += len(chunk)
+                yield chunk
+            status = "completed"
+        finally:
+            await record_usage(engine, user_id, UsageObservation(
+                operation="chat", provider="llmtokenapi", model=model,
+                status=status, tokens=token_counts(observed),
+                charge=llmtokenapi_charge(observed),
+                request_bytes=request_bytes, tool_schema_bytes=tool_schema_bytes,
+                tool_count=len(tools) if isinstance(tools, list) else 0,
+                result_bytes=result_bytes,
+                provider_request_id=provider_request_id(observed),
+            ))
+
     return StreamingResponse(
-        iter_upstream_sse(response, model),
+        metered_stream(),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

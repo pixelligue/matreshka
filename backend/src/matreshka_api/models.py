@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, SQLModel
 
@@ -27,3 +29,28 @@ class PluginConnection(SQLModel, table=True):
     plugin_id: str = Field(index=True)
     enabled: bool = False
     secret: str = ""
+
+
+class UsageEvent(SQLModel, table=True):
+    """Metadata-only record of one attempted paid or potentially paid operation."""
+
+    __tablename__ = "usage_events"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True)
+    occurred_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    operation: str = Field(index=True)
+    provider: str
+    model: str | None = None
+    status: str
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    amount_nanos: int | None = None
+    currency: str | None = None
+    amount_source: str | None = None
+    request_bytes: int | None = None
+    tool_schema_bytes: int | None = None
+    tool_count: int | None = None
+    result_bytes: int | None = None
+    result_count: int | None = None
+    provider_request_id: str | None = None

@@ -1,5 +1,7 @@
 # Matreshka API
 
+English | [中文](README.zh.md)
+
 FastAPI service that the desktop app will call for models. This tree is a uv project and is not part of the pnpm workspace.
 
 ## Prerequisites
@@ -45,6 +47,14 @@ Unauthenticated readiness: `GET /health` returns 200 when Postgres and Redis ans
 Authenticated web search: `POST /v1/web/search` with `{ "query": "...", "provider": "keenable" | "llmtokenapi" }`. Default `keenable` calls Keenable's public search (`X-Keenable-Title: Matreshka`). `llmtokenapi` calls LLMTOKENAPI `POST /v1/search` with `LLMTOKENAPI_API_KEY`. The key never appears in the response.
 
 Authenticated consult: `POST /v1/consult` with `{ "goal", "question", "plan"?, "evidence"? }` (32,000 UTF-8 byte cap) calls OpenRouter `deepseek/deepseek-v4.1-flash` and returns `{ "verdict": "ok"|"revise"|"risk", "detail" }`. Authenticated tool select: `POST /v1/tools/select` with `{ "goal", "candidates" }` (16,000 UTF-8 byte cap) calls OpenRouter Decisions `typesafe/jev-1.13` and returns `{ "tool", "confidence" }`. The OpenRouter key never appears in the response.
+
+## Usage records
+
+The API creates `usage_events` in the existing database and records each authenticated upstream attempt through chat, consult, tool select, or the API's web-search route. Each row contains the user, operation, provider, public model ID, status, token counts when reported, request and result byte counts, and the provider's opaque request ID when available. It stores no prompt, completion, search query, or search result text. Chat rows include title-generation calls because they use the same completion route; the API does not yet identify their purpose separately.
+
+`GET /v1/usage/events?limit=100` returns recent rows for the signed-in user (limit 1–500). `GET /v1/usage/summary` groups that user's rows by operation, provider, model, status, currency, and amount source. `amount_nanos` uses one billion units per RUB or USD; `reported` means the upstream response supplied the charge, `rate_estimate` means the API applied its built-in OpenRouter list rate, and null means the amount is unknown. The summary keeps these groups separate and counts rows with reported input tokens. An upstream failure or missing usage is recorded with an unknown amount, never as a zero charge.
+
+The LLMTOKENAPI chat stream and search response supply a charge only when they include `usage.charged_kopecks`; OpenRouter supplies one when it includes `usage.cost`. Keenable's public endpoint supplies no charge. The desktop's default Keenable search and fetch providers call Keenable directly, so those requests remain visible in Harness session logs but do not enter `usage_events`. Existing sessions are not backfilled. If the database becomes unavailable after an upstream request starts, the API logs the accounting failure and preserves the upstream response.
 
 Desktop auto-update files are public. Allowed targets are `win-x64`, `mac-arm64`, and `mac-x64`. Channel metadata is `latest.yml` (Windows) or `latest-mac.yml` (macOS). Copy a packaged target into the artifact root:
 
