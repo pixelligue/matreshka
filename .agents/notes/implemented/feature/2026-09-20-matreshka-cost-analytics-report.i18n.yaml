@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-20-matreshka-cost-analytics-report.md
+2026-09-20-matreshka-cost-analytics-report.md: 4c7c11b652108e7e773bd5ac1104f41826750373
+2026-09-20-matreshka-cost-analytics-report.zh.md: c081a1bf00ced24405ef1d777218bc3b6535f7af

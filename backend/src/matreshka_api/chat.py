@@ -163,7 +163,7 @@ async def create_chat_completion(
             status="transport_error", request_bytes=request_bytes,
             tool_schema_bytes=tool_schema_bytes,
             tool_count=len(tools) if isinstance(tools, list) else 0,
-        ))
+        ), request.app.state.usage_analytics)
         raise HTTPException(
             status_code=502,
             detail=redact_secret("Upstream unavailable", settings.llmtokenapi_api_key),
@@ -177,7 +177,7 @@ async def create_chat_completion(
             status="http_error", request_bytes=request_bytes,
             tool_schema_bytes=tool_schema_bytes,
             tool_count=len(tools) if isinstance(tools, list) else 0,
-        ))
+        ), request.app.state.usage_analytics)
         raise HTTPException(
             status_code=502,
             detail=redact_secret(
@@ -223,7 +223,7 @@ async def create_chat_completion(
                 tool_count=len(tools) if isinstance(tools, list) else 0,
                 result_bytes=result_bytes,
                 provider_request_id=provider_request_id(observed),
-            ))
+            ), request.app.state.usage_analytics)
 
     return StreamingResponse(
         metered_stream(),

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import httpx
 from fakeredis import FakeAsyncRedis
 from fastapi.testclient import TestClient
@@ -149,3 +151,95 @@ def test_invalid_provider_usage_remains_unknown() -> None:
     assert openrouter_charge(payload, 0.001) is None
     assert llmtokenapi_charge({"usage": {"charged_kopecks": 2**63}}) is None
     assert llmtokenapi_charge({"usage": {"charged_kopecks": 0}}).amount_nanos == 0
+
+
+def test_daily_report_and_aptabase_projection_keep_cost_sources_and_privacy(tmp_path) -> None:
+    settings = make_settings(
+        tmp_path,
+        openrouter_api_key="sk-or-test",
+        matreshka_aptabase_usage_app_key="A-SH-cost-test",
+        matreshka_aptabase_host="http://aptabase.test",
+    )
+    analytics: list[dict] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == OPENROUTER_CHAT_URL:
+            return httpx.Response(200, json={
+                "id": "private-generation-id",
+                "choices": [{"message": {"content": '{"verdict":"ok","detail":"done"}'}}],
+                "usage": {"prompt_tokens": 120, "completion_tokens": 20, "cost": 0.000123},
+            })
+        if str(request.url) == "http://aptabase.test/api/v0/event":
+            assert request.headers["App-Key"] == "A-SH-cost-test"
+            analytics.append(json.loads(request.content))
+            return httpx.Response(202)
+        return httpx.Response(404)
+
+    app = create_app(
+        settings=settings,
+        redis_client=FakeAsyncRedis(decode_responses=True),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    with TestClient(app) as client:
+        token = _token(client, settings, "first@example.com")
+        auth = {"Authorization": f"Bearer {token}"}
+        response = client.post("/v1/consult", headers=auth, json={
+            "goal": "secret goal", "question": "private question",
+        })
+        assert response.status_code == 200
+        report = client.get("/v1/usage/report?days=7", headers=auth)
+        assert report.status_code == 200
+        rows = report.json()["rows"]
+        assert len(rows) == 1
+        assert rows[0]["operation"] == "consult"
+        assert rows[0]["currency"] == "USD"
+        assert rows[0]["amount_source"] == "reported"
+        assert rows[0]["amount_nanos"] == 123_000
+        assert rows[0]["requests"] == 1
+        assert client.get("/v1/usage/report?days=0", headers=auth).status_code == 422
+        assert client.get("/v1/usage/report").status_code == 401
+        other = _token(client, settings, "second@example.com")
+        assert client.get("/v1/usage/report", headers={"Authorization": f"Bearer {other}"}).json()["rows"] == []
+        page = client.get("/analytics/costs")
+        assert page.status_code == 200
+        assert "Расходы на ИИ" in page.text
+        assert "Content-Security-Policy" in page.headers
+        assert client.get("/analytics/costs.js").status_code == 200
+    assert len(analytics) == 1
+    assert analytics[0]["eventName"] == "upstream_usage"
+    assert analytics[0]["props"]["amount_nanos"] == 123_000
+    assert analytics[0]["props"]["amount_source"] == "reported"
+    assert "secret goal" not in str(analytics)
+    assert "private question" not in str(analytics)
+    assert "private-generation-id" not in str(analytics)
+    assert "first@example.com" not in str(analytics)
+
+
+def test_aptabase_outage_does_not_change_committed_usage_or_response(tmp_path) -> None:
+    settings = make_settings(
+        tmp_path,
+        openrouter_api_key="sk-or-test",
+        matreshka_aptabase_usage_app_key="A-SH-cost-test",
+        matreshka_aptabase_host="http://aptabase.test",
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == OPENROUTER_CHAT_URL:
+            return httpx.Response(200, json={
+                "choices": [{"message": {"content": '{"verdict":"ok","detail":"done"}'}}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "cost": 0.000001},
+            })
+        return httpx.Response(503)
+
+    app = create_app(
+        settings=settings,
+        redis_client=FakeAsyncRedis(decode_responses=True),
+        http_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+    )
+    with TestClient(app) as client:
+        token = _token(client, settings, "first@example.com")
+        auth = {"Authorization": f"Bearer {token}"}
+        assert client.post("/v1/consult", headers=auth, json={"goal": "g", "question": "q"}).status_code == 200
+        rows = client.get("/v1/usage/report", headers=auth).json()["rows"]
+        assert len(rows) == 1
+        assert rows[0]["amount_nanos"] == 1_000

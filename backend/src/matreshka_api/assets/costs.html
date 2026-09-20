@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Расходы · Матрёшка</title>
+  <link rel="stylesheet" href="costs.css">
+  <script src="costs.js" defer></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">М</span><span>Матрёшка</span></div>
+      <span class="masthead-side">Операционная аналитика</span>
+    </header>
+
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <h1 id="page-title">Расходы на ИИ</h1>
+        <p>Где тратятся деньги на модели и поиск. Подтверждённые списания и оценки показаны отдельно.</p>
+      </div>
+      <button id="sign-out" class="quiet-button" type="button" hidden>Выйти</button>
+    </section>
+
+    <section id="login-panel" class="login-panel" aria-labelledby="login-title">
+      <div class="login-copy">
+        <h2 id="login-title">Вход для оператора</h2>
+        <p>Используйте учётную запись API Матрёшки. Данные расходов доступны только вам.</p>
+      </div>
+      <form id="login-form">
+        <label for="email">Почта</label>
+        <input id="email" name="email" type="email" autocomplete="username" required>
+        <label for="password">Пароль</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button class="primary-button" type="submit">Показать расходы</button>
+        <p id="login-error" class="error" role="alert" hidden></p>
+      </form>
+    </section>
+
+    <section id="report" hidden aria-live="polite">
+      <div class="report-toolbar">
+        <div>
+          <h2>Отчёт</h2>
+          <p id="period-label" class="muted"></p>
+        </div>
+        <div class="controls">
+          <label for="days">Период</label>
+          <select id="days">
+            <option value="7">7 дней</option>
+            <option value="30" selected>30 дней</option>
+            <option value="90">90 дней</option>
+            <option value="365">365 дней</option>
+          </select>
+          <button id="refresh" class="quiet-button" type="button">Обновить</button>
+        </div>
+      </div>
+      <p id="report-error" class="error" role="alert" hidden></p>
+      <div id="summary" class="summary"></div>
+      <section class="report-section" aria-labelledby="daily-title">
+        <div class="section-heading"><h3 id="daily-title">По дням</h3><span>Рубли и доллары не складываются</span></div>
+        <div id="daily" class="daily"></div>
+      </section>
+      <section class="report-section" aria-labelledby="operations-title">
+        <div class="section-heading"><h3 id="operations-title">По операциям</h3><span>Сначала самые дорогие в каждой валюте</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Операция / провайдер</th><th scope="col">Источник</th><th scope="col" class="numeric">Вызовы</th><th scope="col" class="numeric">Токены</th><th scope="col" class="numeric">Сумма</th></tr></thead>
+            <tbody id="operations"></tbody>
+          </table>
+        </div>
+      </section>
+      <p class="footnote">Суммы приходят от провайдера или рассчитаны по тарифу. Если провайдер не сообщил стоимость, вызов остаётся с неизвестной суммой. Поиск Keenable из настольного приложения пока не входит в этот отчёт.</p>
+    </section>
+  </main>
+</body>
+</html>

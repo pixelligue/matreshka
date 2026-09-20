@@ -40,7 +40,7 @@ uv run matreshka-api create-user --email you@example.com
 uv run fastapi dev --port 8016 --host 127.0.0.1
 ```
 
-在 Windows 上，进程安装 `WindowsSelectorEventLoopPolicy`，以便异步 psycopg 连接。进程从环境变量或 `.env` 读取 `DATABASE_URL`、`REDIS_URL`、`SESSION_TTL_SECONDS`、`LLM_UPSTREAM_BASE_URL`、`LLMTOKENAPI_API_KEY`，以及可选的 `UPDATE_ARTIFACT_ROOT` 和 `OPENROUTER_API_KEY`。缺少必填变量时，进程以非零状态退出并指出变量名。`SESSION_TTL_SECONDS` 必须是正整数。不要提交 `LLMTOKENAPI_API_KEY` 或 `OPENROUTER_API_KEY`。聊天补全通过 LLMTOKENAPI（`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`）代理，对外使用 `matrena`，上游模型 ID 为 `deepseek-ai-deepseek-v4-flash-0731`。`UPDATE_ARTIFACT_ROOT` 可以为空；进程仍会启动，此时 `GET /v1/updates/desktop/{target}/{name}` 返回 404。`OPENROUTER_API_KEY` 可以为空；进程仍会启动，此时 consult/select 返回 503。
+在 Windows 上，进程安装 `WindowsSelectorEventLoopPolicy`，以便异步 psycopg 连接。进程从环境变量或 `.env` 读取 `DATABASE_URL`、`REDIS_URL`、`SESSION_TTL_SECONDS`、`LLM_UPSTREAM_BASE_URL`、`LLMTOKENAPI_API_KEY`，以及可选的 `UPDATE_ARTIFACT_ROOT`、`OPENROUTER_API_KEY`、`MATRESHKA_APTABASE_USAGE_APP_KEY` 和 `MATRESHKA_APTABASE_HOST`。缺少必填变量时，进程以非零状态退出并指出变量名。`SESSION_TTL_SECONDS` 必须是正整数。不要提交 API 或 Aptabase 密钥。聊天补全通过 LLMTOKENAPI（`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`）代理，对外使用 `matrena`，上游模型 ID 为 `deepseek-ai-deepseek-v4-flash-0731`。`UPDATE_ARTIFACT_ROOT` 可以为空；进程仍会启动，此时 `GET /v1/updates/desktop/{target}/{name}` 返回 404。`OPENROUTER_API_KEY` 可以为空；进程仍会启动，此时 consult/select 返回 503。
 
 未认证的就绪检查：Postgres 和 Redis 均可响应时，`GET /health` 返回 200，否则返回 503。数据服务不可用也不会阻止 HTTP 进程启动。
 
@@ -55,6 +55,10 @@ API 在现有数据库中创建 `usage_events`，并记录经过聊天、咨询�
 `GET /v1/usage/events?limit=100` 返回当前登录用户最近的记录（limit 为 1–500）。`GET /v1/usage/summary` 按操作、服务商、模型、状态、货币和金额来源汇总该用户的记录。`amount_nanos` 以 RUB 或 USD 的十亿分之一为单位；`reported` 表示上游响应提供了费用，`rate_estimate` 表示 API 按内置 OpenRouter 标价估算，null 表示金额未知。汇总将这些类别分开，并统计报告了输入 token 的记录。上游失败或缺少用量时，金额记为未知，不会记为零费用。
 
 只有 LLMTOKENAPI 聊天流或搜索响应包含 `usage.charged_kopecks` 时，账本才会记录其费用；OpenRouter 只有包含 `usage.cost` 时才提供实际费用。Keenable 公共接口不提供费用。桌面端默认的 Keenable 搜索和抓取提供方直接调用 Keenable，因此这些请求可见于 Harness 会话日志，但不会进入 `usage_events`。现有会话不会回填。若上游请求开始后数据库不可用，API 会记录记账错误并保留上游响应。
+
+在 `http://127.0.0.1:8016/analytics/costs` 打开操作员费用报告。使用 Matreshka API 账户登录；Bearer 令牌仅保存在页面内存中，报告 API 仍要求认证。页面按日期、操作、服务商、货币及金额来源汇总最近 7、30、90 或 365 天。不会把 RUB 与 USD 或估算与已报告费用相加。`GET /v1/usage/report?days=30` 向当前登录用户提供相同的每日 JSON 汇总。
+
+若要在自托管 Aptabase 中查看请求数量和类别，请创建单独的 Aptabase 应用，设置 `MATRESHKA_APTABASE_USAGE_APP_KEY=A-SH-...`；若不是默认本机 8000 端口，再设置 `MATRESHKA_APTABASE_HOST`。用量记录提交后，API 发送匿名 `upstream_usage` 事件，包含操作、服务商、模型、状态、token 数量及已知费用。不发送用户 ID、邮箱、提示词、搜索结果或服务商请求 ID。投递采用尽力而为；数据库报告是精确总额的来源。Aptabase 内置图表统计事件数量，不会对费用字段求和。
 
 桌面端自动更新文件公开提供。允许的目标为 `win-x64`、`mac-arm64` 和 `mac-x64`。频道元数据为 `latest.yml`（Windows）或 `latest-mac.yml`（macOS）。将打包后的目标复制到工件根目录：
 

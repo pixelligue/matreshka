@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from typing import Annotated
 
@@ -17,6 +18,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from matreshka_api.auth import CurrentUserDep
 from matreshka_api.db import SessionDep
 from matreshka_api.models import UsageEvent
+from matreshka_api.usage_analytics import UsageAnalytics
 
 router = APIRouter(prefix="/v1/usage", tags=["usage"])
 logger = logging.getLogger("matreshka.usage")
@@ -111,7 +113,12 @@ def provider_request_id(payload: object) -> str | None:
     return value if isinstance(value, str) and len(value) <= 200 else None
 
 
-async def record_usage(engine: AsyncEngine, user_id: int, observation: UsageObservation) -> None:
+async def record_usage(
+    engine: AsyncEngine,
+    user_id: int,
+    observation: UsageObservation,
+    analytics: UsageAnalytics | None = None,
+) -> None:
     """Persist one observation; accounting failure does not alter the upstream response."""
     row = UsageEvent(
         user_id=user_id,
@@ -132,11 +139,14 @@ async def record_usage(engine: AsyncEngine, user_id: int, observation: UsageObse
         provider_request_id=observation.provider_request_id,
     )
     try:
-        async with AsyncSession(engine) as session:
+        async with AsyncSession(engine, expire_on_commit=False) as session:
             session.add(row)
             await session.commit()
     except Exception as error:
         logger.error("usage record failed: %s", type(error).__name__)
+        return
+    if analytics is not None:
+        analytics.publish(row)
 
 
 class UsageSummaryRow(BaseModel):
@@ -158,6 +168,77 @@ class UsageSummaryRow(BaseModel):
 
 class UsageSummaryResponse(BaseModel):
     rows: list[UsageSummaryRow]
+
+
+class UsageReportRow(BaseModel):
+    day: date
+    operation: str
+    provider: str
+    model: str | None
+    status: str
+    currency: str | None
+    amount_source: str | None
+    requests: int
+    metered_requests: int
+    input_tokens: int
+    output_tokens: int
+    amount_nanos: int | None
+
+
+class UsageReportResponse(BaseModel):
+    from_day: date
+    through_day: date
+    rows: list[UsageReportRow]
+
+
+@router.get("/report")
+async def usage_report(
+    _user: CurrentUserDep,
+    session: SessionDep,
+    days: Annotated[int, Query(ge=1, le=365)] = 30,
+) -> UsageReportResponse:
+    """Return daily user-scoped totals with currencies and cost sources separate."""
+    through_day = datetime.now(timezone.utc).date()
+    from_day = through_day - timedelta(days=days - 1)
+    start = datetime.combine(from_day, time.min, tzinfo=timezone.utc)
+    end = datetime.combine(through_day + timedelta(days=1), time.min, tzinfo=timezone.utc)
+    day = func.date(UsageEvent.occurred_at)
+    statement = (
+        select(
+            day,
+            UsageEvent.operation,
+            UsageEvent.provider,
+            UsageEvent.model,
+            UsageEvent.status,
+            UsageEvent.currency,
+            UsageEvent.amount_source,
+            func.count(UsageEvent.id),
+            func.count(UsageEvent.input_tokens),
+            func.sum(UsageEvent.input_tokens),
+            func.sum(UsageEvent.output_tokens),
+            func.sum(UsageEvent.amount_nanos),
+        )
+        .where(UsageEvent.user_id == _user.id, UsageEvent.occurred_at >= start, UsageEvent.occurred_at < end)
+        .group_by(
+            day, UsageEvent.operation, UsageEvent.provider, UsageEvent.model,
+            UsageEvent.status, UsageEvent.currency, UsageEvent.amount_source,
+        )
+        .order_by(day.desc())
+    )
+    result = await session.exec(statement)
+    rows = [
+        UsageReportRow(
+            day=date.fromisoformat(str(day_value)), operation=operation,
+            provider=provider, model=model, status=status, currency=currency,
+            amount_source=amount_source, requests=requests,
+            metered_requests=metered_requests, input_tokens=input_tokens or 0,
+            output_tokens=output_tokens or 0, amount_nanos=amount_nanos,
+        )
+        for (day_value, operation, provider, model, status, currency,
+             amount_source, requests, metered_requests, input_tokens,
+             output_tokens, amount_nanos) in result.all()
+    ]
+    return UsageReportResponse(from_day=from_day, through_day=through_day, rows=rows)
 
 
 @router.get("/summary")

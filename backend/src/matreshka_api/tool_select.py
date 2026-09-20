@@ -145,4 +145,4 @@ async def select_tool(
             request_bytes=len(json.dumps(outbound_payload, ensure_ascii=False).encode("utf-8")),
             result_bytes=len(response.content) if response is not None else None,
             provider_request_id=provider_request_id(payload),
-        ))
+        ), request.app.state.usage_analytics)

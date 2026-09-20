@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     session_ttl_seconds: int = Field(default=60 * 60 * 24 * 7, gt=0)
     update_artifact_root: str | None = None
     openrouter_api_key: str | None = None
+    matreshka_aptabase_usage_app_key: str | None = None
+    matreshka_aptabase_host: str = "http://127.0.0.1:8000"
     amadeus_client_id: str | None = None
     amadeus_client_secret: str | None = None
     amadeus_hostname: str = "test.api.amadeus.com"
@@ -51,6 +53,7 @@ class Settings(BaseSettings):
     @field_validator(
         "update_artifact_root",
         "openrouter_api_key",
+        "matreshka_aptabase_usage_app_key",
         "amadeus_client_id",
         "amadeus_client_secret",
         mode="before",
@@ -62,6 +65,20 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @field_validator("matreshka_aptabase_usage_app_key")
+    @classmethod
+    def usage_analytics_key_is_self_hosted(cls, value: str | None) -> str | None:
+        if value is not None and not value.startswith("A-SH-"):
+            raise ValueError("must be a self-hosted Aptabase App Key (A-SH-)")
+        return value
+
+    @field_validator("matreshka_aptabase_host")
+    @classmethod
+    def usage_analytics_host_is_http(cls, value: str) -> str:
+        if not value.startswith(("http://", "https://")):
+            raise ValueError("must be an HTTP(S) origin")
+        return value.rstrip("/")
 
     @field_validator("amadeus_hostname", mode="before")
     @classmethod

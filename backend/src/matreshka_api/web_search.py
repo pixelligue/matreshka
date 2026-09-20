@@ -158,4 +158,4 @@ async def web_search(
             request_bytes=len(json.dumps(upstream_body, ensure_ascii=False).encode("utf-8")),
             result_bytes=len(response.content) if response is not None else None,
             result_count=len(sources) if status == "completed" else None,
-        ))
+        ), request.app.state.usage_analytics)
