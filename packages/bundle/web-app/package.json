@@ -118,6 +118,8 @@
     "@deepseek-ai/dsh-cis-plugins-matreshka": "workspace:^",
     "@deepseek-ai/dsh-client-ui-plugins-matreshka": "workspace:^",
     "@deepseek-ai/dsh-consult-matreshka": "workspace:^",
+    "@deepseek-ai/dsh-audio-matreshka": "workspace:^",
+    "@deepseek-ai/dsh-images-matreshka": "workspace:^",
     "@deepseek-ai/dsh-web-search-matreshka": "workspace:^",
     "@deepseek-ai/dsh-workspace": "workspace:^",
     "@deepseek-ai/schemastery": "workspace:^",

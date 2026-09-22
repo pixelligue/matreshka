@@ -40,6 +40,25 @@ export interface SelectToolResult {
   readonly confidence: number
 }
 
+/** Body for {@link postSkillPlan}. */
+export interface SkillPlanInput {
+  readonly request: string
+  readonly files?: string
+}
+
+/** One skill Jev attached to the plan. */
+export interface SkillPlanSkill {
+  readonly id: string
+  readonly name: string
+  readonly body: string
+}
+
+/** JSON from `POST /v1/skills/plan`. */
+export interface SkillPlanResult {
+  readonly skills: readonly SkillPlanSkill[]
+  readonly plan: string
+}
+
 /**
  * POST `/v1/consult` with the session bearer.
  * @param options - API origin and session token.
@@ -97,6 +116,47 @@ export async function postSelectTool(
   return {
     tool: typeof payload.tool === 'string' ? payload.tool : '',
     confidence,
+  }
+}
+
+/**
+ * POST `/v1/skills/plan` with the session bearer.
+ * Jev chooses a registry skill; Flash writes the conceptual plan.
+ * @param options - API origin and session token.
+ * @param input - user request and optional file notes.
+ * @param signal - optional abort signal.
+ * @returns the skills used and the plan text. An empty plan means no skill applied.
+ */
+export async function postSkillPlan(
+  options: MatreshkaSessionOptions,
+  input: SkillPlanInput,
+  signal?: AbortSignal,
+): Promise<SkillPlanResult> {
+  if (options.sessionToken.length === 0) {
+    throw new Error('Matreshka session is required for a skill plan')
+  }
+  const payload = await postJson(
+    `${originOf(options.apiOrigin)}/v1/skills/plan`,
+    options.sessionToken,
+    {
+      request: input.request,
+      ...input.files !== undefined ? { files: input.files } : {},
+    },
+    signal,
+  )
+  const skills: SkillPlanSkill[] = []
+  if (Array.isArray(payload.skills)) {
+    for (const item of payload.skills) {
+      if (typeof item !== 'object' || item === null) continue
+      const record = item as Record<string, unknown>
+      if (typeof record.id === 'string' && typeof record.name === 'string' && typeof record.body === 'string') {
+        skills.push({ id: record.id, name: record.name, body: record.body })
+      }
+    }
+  }
+  return {
+    skills,
+    plan: typeof payload.plan === 'string' ? payload.plan : '',
   }
 }
 

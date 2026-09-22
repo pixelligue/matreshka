@@ -28,6 +28,7 @@ import type {
   ModelCatalog,
   SessionAttachmentRequest,
   SessionAttachmentValue,
+  SessionAudioValue,
   SessionCancelRequest,
   SessionCancelValue,
   SessionControlFrame,
@@ -357,6 +358,16 @@ export class SessionController extends TypertRemoteService {
   @Remote('attachment')
   attachment(request: SessionAttachmentRequest): Promise<SessionAttachmentValue> {
     return this.commands.attachment(request)
+  }
+
+  /**
+   * Read one playable audio file proven reachable from the addressed Session log.
+   * @param request - Session and attachment identities used for authorization.
+   * @returns the durable file reference, audio media type, and base64-encoded bytes.
+   */
+  @Remote('audio')
+  audio(request: SessionAttachmentRequest): Promise<SessionAudioValue> {
+    return this.commands.audio(request)
   }
 
   /**

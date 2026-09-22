@@ -55,6 +55,7 @@ export function createElectronBuilderConfig(
   return {
     appId,
     productName: 'Matreshka',
+    protocols: [{ name: 'Matreshka', schemes: ['matreshka'] }],
     icon: fileURLToPath(new URL('./build/icon.png', import.meta.url)),
     artifactName: 'deepseek-harness-${version}-${os}-${arch}.${ext}',
     directories: { output: unsigned ? join(buildPaths.root, 'unsigned-artifacts') : buildPaths.artifacts },

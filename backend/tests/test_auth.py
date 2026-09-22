@@ -157,9 +157,84 @@ def test_logout_without_authorization_is_204(harness: AppHarness) -> None:
     assert response.status_code == 204
 
 
-def test_register_route_is_missing(harness: AppHarness) -> None:
-    response = harness.client.post(
+def test_register_creates_user_and_duplicate_is_409(harness: AppHarness) -> None:
+    created = harness.client.post(
         "/v1/auth/register",
-        json={"email": "new@example.com", "password": "secret"},
+        json={"email": "new@example.com", "password": "secret12"},
     )
-    assert response.status_code in (404, 405)
+    assert created.status_code == 201
+    token = created.json()["token"]
+    assert token
+    assert created.json()["email"] == "new@example.com"
+    login = harness.client.post(
+        "/v1/auth/login",
+        json={"email": "new@example.com", "password": "secret12"},
+    )
+    assert login.status_code == 200
+    again = harness.client.post(
+        "/v1/auth/register",
+        json={"email": "new@example.com", "password": "secret12"},
+    )
+    assert again.status_code == 409
+
+
+def test_register_rejects_invalid_email_or_short_password(harness: AppHarness) -> None:
+    bad_email = harness.client.post(
+        "/v1/auth/register",
+        json={"email": "not-an-email", "password": "secret12"},
+    )
+    short = harness.client.post(
+        "/v1/auth/register",
+        json={"email": "ok@example.com", "password": "short"},
+    )
+    assert bad_email.status_code == 400
+    assert short.status_code == 400
+
+
+def test_undocumented_signup_path_does_not_create_a_user(harness: AppHarness) -> None:
+    response = harness.client.post(
+        "/v1/auth/signup",
+        json={"email": "ghost@example.com", "password": "secret12"},
+    )
+    assert response.status_code in {404, 405}
+    login = harness.client.post(
+        "/v1/auth/login",
+        json={"email": "ghost@example.com", "password": "secret12"},
+    )
+    assert login.status_code == 401
+
+
+def test_desktop_code_requires_bearer_and_exchange_is_single_use(harness: AppHarness) -> None:
+    missing = harness.client.post("/v1/auth/desktop-code")
+    assert missing.status_code == 401
+    provision_user("op@example.com", "secret", settings=harness.settings)
+    login = harness.client.post(
+        "/v1/auth/login",
+        json={"email": "op@example.com", "password": "secret"},
+    )
+    token = login.json()["token"]
+    minted = harness.client.post(
+        "/v1/auth/desktop-code",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert minted.status_code == 200
+    code = minted.json()["code"]
+    assert code != token
+    assert minted.json()["expiresIn"] == 60
+    exchanged = harness.client.post("/v1/auth/exchange", json={"code": code})
+    assert exchanged.status_code == 200
+    desktop_token = exchanged.json()["token"]
+    assert desktop_token != token
+    ok = harness.client.post(
+        "/v1/chat/completions",
+        json=CHAT_BODY,
+        headers={"Authorization": f"Bearer {desktop_token}"},
+    )
+    assert ok.status_code == 200
+    reused = harness.client.post("/v1/auth/exchange", json={"code": code})
+    assert reused.status_code == 401
+
+
+def test_exchange_unknown_code_is_401(harness: AppHarness) -> None:
+    response = harness.client.post("/v1/auth/exchange", json={"code": "nosuchcode"})
+    assert response.status_code == 401

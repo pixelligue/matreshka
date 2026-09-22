@@ -28,7 +28,7 @@ cp .env.example .env
 uv sync
 ```
 
-Create an operator user. There is no HTTP signup. Omit `--password` to type it without echoing:
+Create an operator user with the CLI, or `POST /v1/auth/register`. Omit `--password` to type it without echoing:
 
 ```bash
 uv run matreshka-api create-user --email you@example.com
@@ -40,13 +40,13 @@ Run the API on the host (reload enabled). Bind loopback port 8016 so it matches 
 uv run fastapi dev --port 8016 --host 127.0.0.1
 ```
 
-On Windows the process installs `WindowsSelectorEventLoopPolicy` so async psycopg can connect. The process reads `DATABASE_URL`, `REDIS_URL`, `SESSION_TTL_SECONDS`, `LLM_UPSTREAM_BASE_URL`, `LLMTOKENAPI_API_KEY`, and optional `UPDATE_ARTIFACT_ROOT`, `OPENROUTER_API_KEY`, `MATRESHKA_APTABASE_USAGE_APP_KEY`, and `MATRESHKA_APTABASE_HOST` from the environment (or `.env`). Missing required variables exit non-zero and name the variable. `SESSION_TTL_SECONDS` must be a positive integer. Do not commit API or Aptabase keys. Chat completions proxy LLMTOKENAPI (`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`) with public catalog id `deepseek-ai-deepseek-v4-flash-0731` for `matrena`. `UPDATE_ARTIFACT_ROOT` may be empty; the process still starts and `GET /v1/updates/desktop/{target}/{name}` returns 404 until it is set. `OPENROUTER_API_KEY` may be empty; the process still starts and consult/select return 503 until it is set.
+On Windows the process installs `WindowsSelectorEventLoopPolicy` so async psycopg can connect. The process reads `DATABASE_URL`, `REDIS_URL`, `SESSION_TTL_SECONDS`, `LLM_UPSTREAM_BASE_URL`, optional `LLM_UPSTREAM_API_KEY`, `LLMTOKENAPI_API_KEY`, and optional `UPDATE_ARTIFACT_ROOT`, `OPENROUTER_API_KEY`, `MATRESHKA_APTABASE_USAGE_APP_KEY`, and `MATRESHKA_APTABASE_HOST` from the environment (or `.env`). Missing required variables exit non-zero and name the variable. `SESSION_TTL_SECONDS` must be a positive integer. Do not commit API or Aptabase keys. Chat completions proxy Gonka (`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`) with `LLM_UPSTREAM_API_KEY`. Public id `matrena` tries `zai-org/GLM-5.3-Flash`, then `deepseek-ai/DeepSeek-V4-Flash-0731` unless the first response is HTTP 401 or 403. If Gonka still fails, and `OPENROUTER_API_KEY` is set, the same request tries OpenRouter `z-ai/glm-5.3-flash`. If both keys are empty the response is 503. `UPDATE_ARTIFACT_ROOT` may be empty; the process still starts and `GET /v1/updates/desktop/{target}/{name}` returns 404 until it is set. `OPENROUTER_API_KEY` may be empty; the process still starts and consult/select return 503 until it is set.
 
 Unauthenticated readiness: `GET /health` returns 200 when Postgres and Redis answer, otherwise 503. A down datastore does not prevent the HTTP process from starting.
 
 Authenticated web search: `POST /v1/web/search` with `{ "query": "...", "provider": "keenable" | "llmtokenapi" }`. Default `keenable` calls Keenable's public search (`X-Keenable-Title: Matreshka`). `llmtokenapi` calls LLMTOKENAPI `POST /v1/search` with `LLMTOKENAPI_API_KEY`. The key never appears in the response.
 
-Authenticated consult: `POST /v1/consult` with `{ "goal", "question", "plan"?, "evidence"? }` (32,000 UTF-8 byte cap) calls OpenRouter `deepseek/deepseek-v4.1-flash` and returns `{ "verdict": "ok"|"revise"|"risk", "detail" }`. Authenticated tool select: `POST /v1/tools/select` with `{ "goal", "candidates" }` (16,000 UTF-8 byte cap) calls OpenRouter Decisions `typesafe/jev-1.13` and returns `{ "tool", "confidence" }`. The OpenRouter key never appears in the response.
+Authenticated consult: `POST /v1/consult` with `{ "goal", "question", "plan"?, "evidence"? }` (32,000 UTF-8 byte cap) calls OpenRouter `deepseek/deepseek-v4.1-flash` and returns `{ "verdict": "ok"|"revise"|"risk", "detail" }`. Authenticated tool select: `POST /v1/tools/select` with `{ "goal", "candidates" }` (16,000 UTF-8 byte cap) calls OpenRouter Decisions `typesafe/jev-1.13` and returns `{ "tool", "confidence" }`. Authenticated skill choice: `GET /v1/skills` lists published stack skills kept on the API, and `POST /v1/skills/plan` with `{ "request", "files"? }` lets Jev choose `none` or one of those skills and returns its `SKILL.md`. The Host installs that file for later turns and does not show a consultant tool. The OpenRouter key never appears in the response.
 
 ## Usage records
 

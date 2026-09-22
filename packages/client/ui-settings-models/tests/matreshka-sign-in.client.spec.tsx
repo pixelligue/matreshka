@@ -337,4 +337,71 @@ describe('MatreshkaSignInDialog', () => {
     act(() => { clearSession() })
     expect(await screen.findByRole('heading', { name: en.signInTitle })).toBeTruthy()
   })
+
+  it('keeps email and password when Desktop local login is forced', async () => {
+    vi.stubGlobal('dshDesktop', {
+      analytics: { track: vi.fn() },
+      auth: {
+        localLogin: () => Promise.resolve(true),
+        openWebsiteLogin: vi.fn(() => Promise.resolve()),
+        subscribeAuthCode: () => () => {},
+      },
+    })
+    await showPage()
+    expect(screen.getByLabelText(en.signInEmail)).toBeTruthy()
+  })
+
+  it('opens the website instead of collecting a password on packaged Desktop', async () => {
+    const openWebsiteLogin = vi.fn(() => Promise.resolve())
+    vi.stubGlobal('dshDesktop', {
+      analytics: { track: vi.fn() },
+      auth: {
+        localLogin: () => Promise.resolve(false),
+        openWebsiteLogin,
+        subscribeAuthCode: () => () => {},
+      },
+    })
+    await showPage()
+    expect(screen.queryByLabelText(en.signInEmail)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en.signInWebsite }))
+    await waitFor(() => expect(openWebsiteLogin).toHaveBeenCalledOnce())
+  })
+
+  it('exchanges a one-time desktop code for a session token', async () => {
+    const storeCredential = vi.fn(() => Promise.resolve(undefined))
+    const track = vi.fn()
+    let deliver: ((code: string) => void) | undefined
+    vi.stubGlobal('dshDesktop', {
+      analytics: { track },
+      auth: {
+        localLogin: () => Promise.resolve(false),
+        openWebsiteLogin: vi.fn(() => Promise.resolve()),
+        subscribeAuthCode: (listener: (code: string) => void) => {
+          deliver = listener
+          return () => {}
+        },
+      },
+    })
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response(
+      JSON.stringify({ token: 'desk-1', email: 'op@example.com' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    ))))
+    await showPage({
+      operations: {
+        describeCredential: vi.fn(() => Promise.resolve(undefined)),
+        storeCredential,
+        removeCredential: vi.fn(() => Promise.resolve(undefined)),
+        writeSettings: vi.fn(),
+        discoverModels: vi.fn(),
+      },
+    })
+    act(() => { deliver?.('once-code-1') })
+    await waitFor(() => expect(storeCredential).toHaveBeenCalledWith(MATRESHKA_SESSION_TOKEN, 'desk-1'))
+    expect(fetch).toHaveBeenCalledWith(
+      `${DEFAULT_MATRESHKA_API_ORIGIN}/v1/auth/exchange`,
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(track).toHaveBeenCalledWith('ui_sign_in')
+    expect(screen.queryByRole('heading', { name: en.signInTitle })).toBeNull()
+  })
 })

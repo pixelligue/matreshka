@@ -1553,6 +1553,7 @@ describe('strips and variants', () => {
     const { view } = bench({ variant: 'hero', accessory: <i data-testid="acc" /> })
     expect(view.getByTestId('acc')).toBeTruthy()
     expect(view.container.querySelector('[class*="hero"]')).not.toBeNull()
+    expect(view.container.textContent).not.toContain('Matrena 只读取 UTF-8')
   })
 
   it('renders overlay, left/right, and footer slots at their layout positions', () => {

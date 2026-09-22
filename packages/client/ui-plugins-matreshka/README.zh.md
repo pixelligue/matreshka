@@ -1,5 +1,5 @@
 ---
-description: "侧边栏「插件」标签页与 amoCRM、Bitrix24、Tilda、Amadeus 酒店的目录面板。"
+description: "侧边栏插件页：集成卡片、操作者技能和自定义 MCP 服务器。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本包在 `sidebar.panellist` 上注册一条本地化的「插件」行（order 10，位于「新会话」之下），以及一个在打开时隐藏聊天的 keyed `main` 面板。目录列出 amoCRM、Bitrix24、Tilda 和 Amadeus。Word、Excel 和 PDF 不是卡片。启用与连接用会话 bearer 发到 Matreshka API；Desktop 从不保存提供方密钥。
+本包在 `sidebar.panellist` 上注册一条本地化的「插件」行（order 10，位于「新会话」之下），以及一个在打开时隐藏聊天的 keyed `main` 面板。面板是一个目录：集成、技能和 MCP 服务器。插件列出 amoCRM、Bitrix24、Tilda 和 Amadeus。加号打开添加或连接表单。Word、Excel 和 PDF 不是卡片。启用与连接用会话 bearer 发到 Matreshka API；Desktop 从不保存这些提供方密钥。
 
 ## 目录
 
@@ -36,7 +36,7 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-panellist id 与 main key 都是 `plugins`。状态来自 `GET /v1/plugins`。连接 POST 到 `/v1/plugins/{id}/connect`。Amadeus 酒店使用产品 API 密钥，而不是按用户连接表单。
+panellist id 与 main key 都是 `plugins`。状态来自 `GET /v1/plugins`。连接 POST 到 `/v1/plugins/{id}/connect`。Amadeus 酒店使用产品 API 密钥，而不是按用户连接表单。技能标签通过 `dshDesktop.skills` 写入 `SKILL.md`。MCP 标签解析粘贴的配置，询问空密钥，并通过 `dshDesktop.mcp` 保存 `env` 或 `headers`。GitHub 导入使用 `dshDesktop.importGithub`。
 
 ## 模型体验
 
@@ -52,6 +52,8 @@ panellist id 与 main key 都是 `plugins`。状态来自 `GET /v1/plugins`。�
 
 - **浏览器插件收不到 YAML `config`。** 目录使用 `http://127.0.0.1:8016` 作为 API origin。
 - **Amadeus 酒店使用产品密钥。** 卡片可以启用；预订不在范围内。
+- **技能和自定义 MCP 需要 Desktop。** 没有 `dshDesktop` 时，标签说明它们要在桌面应用里添加。
+- **GitHub 导入只读取一个原始文件。** 仓库 URL 依次尝试 `main` 和 `master` 上的 `SKILL.md` 或 MCP JSON 文件。blob URL 下载该文件。粘贴里的 `cwd` 不会保存。
 
 <a id="dev-note"></a>
 ### 开发笔记

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/web/consult-matreshka/README.md
-README.md: 58ec03ca1eb7bf205f89edcef65928a89a415335
-README.zh.md: f75200721b3db9a81118fe6b76cb237df920cd07
+README.md: 3c2775f7ad1c560bd65c229e7c80c8ab6092549c
+README.zh.md: 92051984e5e031679ced36e42d23bbdffd889182

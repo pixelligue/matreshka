@@ -276,4 +276,25 @@ describe('ComposerAttachments file drafts', () => {
     })} />)
     expect(view.getByTitle('.env').textContent).toContain('ENV 3B')
   })
+
+  it('plays an audio draft outside the file rail', () => {
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:song')
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+    const view = render(<ComposerAttachments {...props({
+      attachments: [fileDraft('song', 'song.mp3')],
+      uploads: {
+        song: {
+          status: 'ready', receiptId: 'receipt-song' as never,
+          file: { attachmentId: 'file-song' as never, name: 'song.mp3', bytes: 3 },
+        },
+      },
+    })} />)
+    const player = view.container.querySelector('audio')
+    expect(player?.getAttribute('src')).toBe('blob:song')
+    expect(view.queryByRole('group', { name: '待发送附件' })).toBeNull()
+    view.unmount()
+    expect(revokeObjectURL).toHaveBeenCalled()
+    createObjectURL.mockRestore()
+    revokeObjectURL.mockRestore()
+  })
 })

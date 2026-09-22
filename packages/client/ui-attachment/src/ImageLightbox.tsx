@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { IconCloseOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { copyImage, downloadImage, shareImage } from './image-actions.ts'
 import css from './ImageLightbox.module.css'
 
 /** Lightbox strings the owner resolves from its own locale namespace. */
@@ -9,6 +10,12 @@ export interface ImageLightboxLabels {
   dialog: string
   /** Accessible label of the close control. */
   close: string
+  /** Download control. */
+  download: string
+  /** Copy control. */
+  copy: string
+  /** Share control. */
+  share: string
 }
 
 /**
@@ -55,6 +62,11 @@ export function ImageLightbox({ src, alt, labels, onClose }: {
     >
       <div className={css.mask} aria-hidden="true" onMouseDown={onClose} />
       <img className={css.image} src={src} alt={alt} />
+      <div className={css.actions}>
+        <button type="button" onClick={() => { void downloadImage(src, alt) }}>{labels.download}</button>
+        <button type="button" onClick={() => { void copyImage(src) }}>{labels.copy}</button>
+        <button type="button" onClick={() => { void shareImage(src, alt) }}>{labels.share}</button>
+      </div>
       <button ref={closeRef} type="button" className={css.close} aria-label={labels.close} onClick={onClose}>
         <IconCloseOutline16 size={16} />
       </button>

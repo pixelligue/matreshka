@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { createElement } from 'react'
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AuthPage } from '../src/AuthPage'
 import { BENCH_ROWS, formatScore, rowLeaders } from '../src/benchmarks'
 import { LandingPage } from '../src/LandingPage'
 import { MatrenaPage } from '../src/MatrenaPage'
 import { en, ru } from '../src/locales'
+import { desktopAuthHref } from '../src/paths'
+import { LANDING_SESSION_KEY, readLandingSession, writeLandingSession } from '../src/session'
 
 const forbidden = /OpenAI|ChatGPT|DeepSeek Harness|репозитор|working folder|уже используете|already use/
 const catalogStrip = /amoCRM|Bitrix24|Tilda|Amadeus/
@@ -13,6 +16,9 @@ const meraCallout = /MERA|next submit|следующ/
 
 afterEach(() => {
   cleanup()
+  window.localStorage.clear()
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 describe('Matreshka landing copy', () => {
@@ -91,5 +97,113 @@ describe('published scores', () => {
     expect(rowLeaders(swe)).toEqual(['opus'])
     const tb21 = BENCH_ROWS.find(row => row.id === 'tb21')!
     expect(rowLeaders(tb21)).toEqual(['matrena'])
+  })
+})
+
+describe('landing auth pages', () => {
+  it('renders Russian login without the marketing hero', () => {
+    render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'login',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: false,
+    }))
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(ru.authLoginTitle)
+    expect(screen.queryByText(ru.pitch)).toBeNull()
+    expect(screen.getByRole('link', { name: ru.navSignIn }).getAttribute('href')).toBe('/login')
+  })
+
+  it('renders Russian register', () => {
+    render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'register',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: false,
+    }))
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(ru.authRegisterTitle)
+  })
+
+  it('hands a desktop code without putting the bearer in the protocol URL', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { assign })
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo) => {
+      const url = String(input)
+      if (url.endsWith('/v1/auth/login')) {
+        return new Response(JSON.stringify({ token: 'sess-secret', email: 'op@example.com' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({ code: 'once-1', expiresIn: 60 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }))
+    render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'login',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: true,
+    }))
+    fireEvent.change(screen.getByLabelText(ru.authEmail), { target: { value: 'op@example.com' } })
+    fireEvent.change(screen.getByLabelText(ru.authPassword), { target: { value: 'secret12' } })
+    fireEvent.click(screen.getByRole('button', { name: ru.authSubmitLogin }))
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(desktopAuthHref('once-1')))
+    expect(String(assign.mock.calls[0]?.[0])).not.toContain('sess-secret')
+    expect(readLandingSession()?.email).toBe('op@example.com')
+  })
+
+  it('keeps the visitor signed in after reload', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ token: 'sess-2', email: 'new@example.com' }),
+      { status: 201, headers: { 'Content-Type': 'application/json' } },
+    )))
+    const { unmount } = render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'register',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: false,
+    }))
+    fireEvent.change(screen.getByLabelText(ru.authEmail), { target: { value: 'new@example.com' } })
+    fireEvent.change(screen.getByLabelText(ru.authPassword), { target: { value: 'secret12' } })
+    fireEvent.click(screen.getByRole('button', { name: ru.authSubmitRegister }))
+    await waitFor(() => expect(screen.getByText(ru.authSignedIn)).toBeTruthy())
+    expect(window.localStorage.getItem(LANDING_SESSION_KEY)).toContain('sess-2')
+    unmount()
+    render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'login',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: false,
+    }))
+    expect(screen.getByText(ru.authSignedIn)).toBeTruthy()
+    expect(screen.queryByLabelText(ru.authEmail)).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: ru.authSignOut }))
+    expect(screen.getByLabelText(ru.authEmail)).toBeTruthy()
+    expect(readLandingSession()).toBeNull()
+  })
+
+  it('hands off a stored session to Desktop without a password form', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { assign })
+    writeLandingSession({ token: 'sess-stored', email: 'op@example.com' })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ code: 'once-2', expiresIn: 60 }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    )))
+    render(createElement(AuthPage, {
+      copy: ru,
+      locale: 'ru',
+      mode: 'register',
+      apiOrigin: 'http://127.0.0.1:8016',
+      desktopHandoff: true,
+    }))
+    await waitFor(() => expect(assign).toHaveBeenCalledWith(desktopAuthHref('once-2')))
+    expect(screen.queryByLabelText(ru.authEmail)).toBeNull()
   })
 })

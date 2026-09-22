@@ -1,8 +1,11 @@
 import { Fragment, memo, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import type { FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { fileExtension, FileTypeIcon, fileSizeText, JsonBlock, projectUserText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  AudioPlayer, fileExtension, FileTypeIcon, fileSizeText, isPlayableAudioFile, JsonBlock, projectUserText, StateDot,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
 import type { ModelRetryNode, TurnErrorNode, UserMessageNode } from '../contract/snapshot.ts'
 import { CompactionItem } from './CompactionItem.tsx'
@@ -36,6 +39,36 @@ function contentParts(content: readonly unknown[]): {
     else rest.push(block)
   }
   return { text: texts.join(''), attachments, rest }
+}
+
+/** Session-authorized loader for one durable audio file. */
+type LoadAudio = (file: FileAttachmentRef) => Promise<string>
+
+/** Play one sent audio file once its URL resolves. */
+function MessageAudio({
+  file, loadAudio, label, loading, failed,
+}: {
+  file: FileAttachmentRef
+  loadAudio: LoadAudio
+  label: string
+  loading: string
+  failed: string
+}) {
+  const [url, setUrl] = useState<string | undefined>(undefined)
+  const [error, setError] = useState(false)
+  useEffect(() => {
+    let alive = true
+    setError(false)
+    setUrl(undefined)
+    loadAudio(file).then(
+      (resolved) => { if (alive) setUrl(resolved) },
+      () => { if (alive) setError(true) },
+    )
+    return () => { alive = false }
+  }, [file, loadAudio])
+  if (error) return <span className={css.audioStatus}>{failed}</span>
+  if (url === undefined) return <span className={css.audioStatus}>{loading}</span>
+  return <AudioPlayer src={url} label={label} />
 }
 
 function retrySeconds(milliseconds: number): number {
@@ -153,13 +186,49 @@ function TurnMaxTokensItem({ t }: {
   )
 }
 
+/** One user-message file: a card, plus a player when the name is playable audio. */
+function MessageFileCard({ file, loadAudio, t }: {
+  file: FileAttachmentRef
+  loadAudio?: LoadAudio | undefined
+  t: ChatViewSlotProps['t']
+}) {
+  const meta = [fileExtension(file.name).toUpperCase().slice(0, 8), fileSizeText(file.bytes)].filter(Boolean).join(' ')
+  const identity = (
+    <>
+      <FileTypeIcon path={file.name} className={css.fileIcon} />
+      <span className={css.fileContent}>
+        <span className={css.fileName}>{file.name}</span>
+        <span className={css.fileMeta}>{meta}</span>
+      </span>
+    </>
+  )
+  if (!isPlayableAudioFile({ name: file.name, type: '' })) {
+    return <span className={css.fileCard} title={file.name}>{identity}</span>
+  }
+  return (
+    <span className={`${css.fileCard} ${css.fileCardAudio}`} title={file.name}>
+      <span className={css.fileHead}>{identity}</span>
+      {loadAudio !== undefined && (
+        <MessageAudio
+          file={file}
+          loadAudio={loadAudio}
+          label={t('message.audio', { name: file.name })}
+          loading={t('message.audioLoading')}
+          failed={t('message.audioFailed')}
+        />
+      )}
+    </span>
+  )
+}
+
 /** Right-aligned bubble shared by user and steering rows. */
 function UserStyleBubble({
-  content, renderMessageImages, actions, pending = false, echo = false, referenceLabels = [], skillNames = [],
+  content, renderMessageImages, loadAudio, actions, pending = false, echo = false, referenceLabels = [], skillNames = [],
   previewAttachments, references, t,
 }: {
   content: readonly unknown[]
   renderMessageImages: ChatNodeOwnerProps['renderMessageImages']
+  loadAudio?: LoadAudio | undefined
   /** Optional IconActions (or similar) below the bubble; receives the joined text. */
   actions?: (text: string) => ReactNode
   /** Whether this is the Host-authoritative pre-admission steering projection. */
@@ -200,16 +269,12 @@ function UserStyleBubble({
                 </Fragment>
               )
               : (
-                <span key={`file:${index}`} className={css.fileCard} title={attachment.file.name}>
-                  <FileTypeIcon path={attachment.file.name} className={css.fileIcon} />
-                  <span className={css.fileContent}>
-                    <span className={css.fileName}>{attachment.file.name}</span>
-                    <span className={css.fileMeta}>
-                      {[fileExtension(attachment.file.name).toUpperCase().slice(0, 8), fileSizeText(attachment.file.bytes)]
-                        .filter(Boolean).join(' ')}
-                    </span>
-                  </span>
-                </span>
+                <MessageFileCard
+                  key={`file:${index}`}
+                  file={attachment.file}
+                  loadAudio={loadAudio}
+                  t={t}
+                />
               ))}
           </div>
         )}
@@ -234,15 +299,17 @@ function UserStyleBubble({
  * @param props - Pending message content and conversation translator.
  * @returns the pending steering bubble.
  */
-export function PendingSteeringBubble({ content, renderMessageImages, t }: {
+export function PendingSteeringBubble({ content, renderMessageImages, loadAudio, t }: {
   content: readonly unknown[]
   renderMessageImages: ChatNodeOwnerProps['renderMessageImages']
+  loadAudio?: LoadAudio | undefined
   t: ChatViewSlotProps['t']
 }): ReactNode {
   return (
     <UserStyleBubble
       content={content}
       renderMessageImages={renderMessageImages}
+      loadAudio={loadAudio}
       pending
       t={t}
       actions={text => (
@@ -265,9 +332,10 @@ export function PendingSteeringBubble({ content, renderMessageImages, t }: {
  * @param props - the session snapshot's pending submission and render seats.
  * @returns the echoed user bubble.
  */
-export function PendingSubmissionBubble({ submission, renderMessageImages, t }: {
+export function PendingSubmissionBubble({ submission, renderMessageImages, loadAudio, t }: {
   submission: PendingSubmission
   renderMessageImages: ChatNodeOwnerProps['renderMessageImages']
+  loadAudio?: LoadAudio | undefined
   t: ChatViewSlotProps['t']
 }): ReactNode {
   const content = useMemo(
@@ -295,6 +363,7 @@ export function PendingSubmissionBubble({ submission, renderMessageImages, t }: 
       content={content}
       previewAttachments={previewAttachments}
       renderMessageImages={renderMessageImages}
+      loadAudio={loadAudio}
       pending={submission.placement === 'steering'}
       echo
       t={t}
@@ -313,7 +382,7 @@ export function PendingSubmissionBubble({ submission, renderMessageImages, t }: 
 
 /** User and admitted-steering keyed Chat renderer. */
 export const UserMessageNodeView = memo(function UserMessageNodeView({
-  node, renderMessageImages, openFile, openSkill, t,
+  node, renderMessageImages, loadAudio, openFile, openSkill, t,
 }: ChatNodeViewProps<'user' | 'steering'>) {
   const data = node.data
   return (
@@ -321,6 +390,7 @@ export const UserMessageNodeView = memo(function UserMessageNodeView({
       content={data.content}
       references={{ openFile, openSkill }}
       renderMessageImages={renderMessageImages}
+      loadAudio={loadAudio}
       {...data.referenceLabels === undefined ? {} : { referenceLabels: data.referenceLabels }}
       {...data.skillNames === undefined ? {} : { skillNames: data.skillNames }}
       t={t}

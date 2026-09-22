@@ -17,15 +17,20 @@ from matreshka_api.sse import data_frame
 from matreshka_api.usage import (
     UsageObservation,
     llmtokenapi_charge,
+    openrouter_charge,
     provider_request_id,
     record_usage,
     token_counts,
 )
 
-# Public ids the desktop may send. Upstream vendor ids never leave this process.
-PUBLIC_TO_UPSTREAM = {
-    "matrena": "deepseek-ai-deepseek-v4-flash-0731",
-}
+# One public id. Gonka models are tried first; OpenRouter is the last attempt.
+MATRENA_UPSTREAM_MODELS = (
+    "zai-org/GLM-5.3-Flash",
+    "deepseek-ai/DeepSeek-V4-Flash-0731",
+)
+MATRENA_OPENROUTER_MODEL = "z-ai/glm-5.3-flash"
+HIDDEN_UPSTREAM_IDS = MATRENA_UPSTREAM_MODELS + (MATRENA_OPENROUTER_MODEL,)
+PUBLIC_MODELS = frozenset({"matrena"})
 
 router = APIRouter(prefix="/v1/chat", tags=["chat"])
 logger = logging.getLogger("matreshka.chat")
@@ -51,13 +56,13 @@ def rewrite_public_payload(payload: str, public_id: str) -> str:
         data = json.loads(payload)
     except json.JSONDecodeError:
         rewritten = payload
-        for upstream_id in PUBLIC_TO_UPSTREAM.values():
+        for upstream_id in HIDDEN_UPSTREAM_IDS:
             rewritten = rewritten.replace(upstream_id, public_id)
         return rewritten
     if isinstance(data, dict) and "model" in data:
         data["model"] = public_id
     dumped = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
-    for upstream_id in PUBLIC_TO_UPSTREAM.values():
+    for upstream_id in HIDDEN_UPSTREAM_IDS:
         dumped = dumped.replace(upstream_id, public_id)
     return dumped
 
@@ -106,6 +111,94 @@ async def iter_upstream_sse(
         await response.aclose()
 
 
+class MatrenaUpstreamError(Exception):
+    """Every matrena upstream failed before a stream was returned to the client."""
+
+    def __init__(self, detail: str, request_bytes: int) -> None:
+        self.detail = detail
+        self.request_bytes = request_bytes
+
+
+def _upstream_detail(status: int | None, secrets: list[str], body: str) -> str:
+    if status is None:
+        text = "Upstream unavailable"
+    else:
+        text = f"Upstream error ({status})"
+    for secret in secrets:
+        if secret and secret in body:
+            text = redact_secret(text, secret)
+    return text
+
+
+async def _send_stream(
+    http_client: httpx.AsyncClient,
+    url: str,
+    model: str,
+    body: dict,
+    headers: dict[str, str],
+) -> tuple[httpx.Response | None, int, int | None, str]:
+    payload = dict(body)
+    payload["model"] = model
+    payload["stream"] = True
+    try:
+        upstream_request = http_client.build_request("POST", url, json=payload, headers=headers)
+        request_bytes = len(upstream_request.content)
+        response = await http_client.send(upstream_request, stream=True)
+    except httpx.RequestError as exc:
+        logger.warning("matrena model=%s transport_error", model)
+        return None, 0, None, str(exc)
+    if response.status_code < 400:
+        logger.warning("matrena model=%s status=%s", model, response.status_code)
+        return response, request_bytes, response.status_code, ""
+    error_body = (await response.aread()).decode("utf-8", errors="replace")
+    await response.aclose()
+    logger.warning("matrena model=%s status=%s", model, response.status_code)
+    return None, request_bytes, response.status_code, error_body
+
+
+async def open_matrena_upstream(
+    http_client: httpx.AsyncClient,
+    body: dict,
+    gonka_url: str,
+    gonka_key: str | None,
+    openrouter_key: str | None,
+) -> tuple[httpx.Response, int, str]:
+    """Try Gonka models, then OpenRouter. Return the first stream that succeeds."""
+    if gonka_key is None and openrouter_key is None:
+        raise HTTPException(status_code=503, detail="No matrena upstream key is configured")
+    last_status: int | None = None
+    last_body = ""
+    request_bytes = 0
+    secrets = [key for key in (gonka_key, openrouter_key) if key]
+    if gonka_key is not None:
+        headers = {"Authorization": f"Bearer {gonka_key}"}
+        for upstream_model in MATRENA_UPSTREAM_MODELS:
+            response, request_bytes, status, error_body = await _send_stream(
+                http_client, gonka_url, upstream_model, body, headers,
+            )
+            if response is not None:
+                return response, request_bytes, "gonka"
+            last_status = status
+            last_body = error_body
+            # 401/403 is the Gonka key. The other Gonka model would fail the same way.
+            if status in (401, 403):
+                break
+    if openrouter_key is not None:
+        from matreshka_api.openrouter import OPENROUTER_CHAT_URL, openrouter_headers
+        response, request_bytes, status, error_body = await _send_stream(
+            http_client,
+            OPENROUTER_CHAT_URL,
+            MATRENA_OPENROUTER_MODEL,
+            body,
+            openrouter_headers(openrouter_key),
+        )
+        if response is not None:
+            return response, request_bytes, "openrouter"
+        last_status = status
+        last_body = error_body
+    raise MatrenaUpstreamError(_upstream_detail(last_status, secrets, last_body), request_bytes)
+
+
 @router.post("/completions")
 async def create_chat_completion(
     _user: CurrentUserDep,
@@ -125,19 +218,13 @@ async def create_chat_completion(
             detail="Non-stream completions are not supported",
         )
     model = body.get("model")
-    if not isinstance(model, str):
+    if not isinstance(model, str) or model not in PUBLIC_MODELS:
         raise HTTPException(status_code=400, detail="Unknown model")
-    upstream_model = PUBLIC_TO_UPSTREAM.get(model)
-    if upstream_model is None:
-        raise HTTPException(status_code=400, detail="Unknown model")
-
-    url = settings.llm_upstream_base_url.rstrip("/") + "/chat/completions"
-    payload = dict(body)
-    payload["model"] = upstream_model
-    payload["stream"] = True
-    tools = payload.get("tools")
+    gonka_key = settings.llm_upstream_api_key
+    openrouter_key = settings.openrouter_api_key
+    gonka_url = settings.llm_upstream_base_url.rstrip("/") + "/chat/completions"
+    tools = body.get("tools")
     tool_schema_bytes = len(json.dumps(tools, ensure_ascii=False).encode("utf-8")) if isinstance(tools, list) else 0
-    request_bytes = len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
     user_id = _user.id
     assert user_id is not None
     engine = request.app.state.engine
@@ -145,48 +232,20 @@ async def create_chat_completion(
         "proxy model=%s tools=%s keys=%s",
         model,
         len(tools) if isinstance(tools, list) else 0,
-        sorted(payload.keys()),
+        sorted(body.keys()),
     )
-    headers = {"Authorization": f"Bearer {settings.llmtokenapi_api_key}"}
     try:
-        upstream_request = http_client.build_request(
-            "POST",
-            url,
-            json=payload,
-            headers=headers,
+        response, request_bytes, provider = await open_matrena_upstream(
+            http_client, body, gonka_url, gonka_key, openrouter_key,
         )
-        request_bytes = len(upstream_request.content)
-        response = await http_client.send(upstream_request, stream=True)
-    except httpx.RequestError as exc:
+    except MatrenaUpstreamError as exc:
         await record_usage(engine, user_id, UsageObservation(
-            operation="chat", provider="llmtokenapi", model=model,
-            status="transport_error", request_bytes=request_bytes,
+            operation="chat", provider="gonka", model=model,
+            status="http_error", request_bytes=exc.request_bytes,
             tool_schema_bytes=tool_schema_bytes,
             tool_count=len(tools) if isinstance(tools, list) else 0,
         ), request.app.state.usage_analytics)
-        raise HTTPException(
-            status_code=502,
-            detail=redact_secret("Upstream unavailable", settings.llmtokenapi_api_key),
-        ) from exc
-
-    if response.status_code >= 400:
-        error_body = (await response.aread()).decode("utf-8", errors="replace")
-        await response.aclose()
-        await record_usage(engine, user_id, UsageObservation(
-            operation="chat", provider="llmtokenapi", model=model,
-            status="http_error", request_bytes=request_bytes,
-            tool_schema_bytes=tool_schema_bytes,
-            tool_count=len(tools) if isinstance(tools, list) else 0,
-        ), request.app.state.usage_analytics)
-        raise HTTPException(
-            status_code=502,
-            detail=redact_secret(
-                f"Upstream error ({response.status_code})",
-                settings.llmtokenapi_api_key,
-            )
-            if settings.llmtokenapi_api_key in error_body
-            else f"Upstream error ({response.status_code})",
-        )
+        raise HTTPException(status_code=502, detail=exc.detail) from exc
 
     observed: dict[str, object] = {}
 
@@ -215,10 +274,15 @@ async def create_chat_completion(
                 yield chunk
             status = "completed"
         finally:
+            charge = (
+                openrouter_charge(observed, None)
+                if provider == "openrouter"
+                else llmtokenapi_charge(observed)
+            )
             await record_usage(engine, user_id, UsageObservation(
-                operation="chat", provider="llmtokenapi", model=model,
+                operation="chat", provider=provider, model=model,
                 status=status, tokens=token_counts(observed),
-                charge=llmtokenapi_charge(observed),
+                charge=charge,
                 request_bytes=request_bytes, tool_schema_bytes=tool_schema_bytes,
                 tool_count=len(tools) if isinstance(tools, list) else 0,
                 result_bytes=result_bytes,

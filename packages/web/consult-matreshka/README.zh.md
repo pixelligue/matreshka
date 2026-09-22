@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-有了 `dsh-consult-matreshka`，Matrena 可以调用 `consult`（经产品 API 的 DeepSeek V4.1 Flash）和 `select_tool`（经产品 API 的 Jev）。Host 只发送会话 bearer。OpenRouter 密钥留在后端。聊天补全仍使用 `matrena`。
+有了 `dsh-consult-matreshka`，Matrena 可以调用 `consult`（经产品 API 的 DeepSeek V4.1 Flash）和 `select_tool`（经产品 API 的 Jev）。在用户回合的第一步，Host 让 Jev 在 `skip`、`proceed` 与 `consult` 之间选择，仅当选择 `consult` 时才调用 Flash。Host 只发送会话 bearer。OpenRouter 密钥留在后端。聊天补全仍使用 `matrena`。
 
 ## 目录
 
@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-与聊天所用的 Matreshka API origin 一起挂载。Consult 需要已登录会话。问候语不要调用这两个工具。
+与聊天所用的 Matreshka API origin 一起挂载。Consult 需要已登录会话。简单任务走 `proceed`，仅困难或有风险的请求才调用 Flash。
 
 ```yaml
 - id: consult-matreshka
@@ -35,7 +35,7 @@ kind: "package-reference"
 <a id="understand-the-implementation"></a>
 ## 理解实现
 
-`consult` 将 `{goal, question, plan?, evidence?}` POST 到 `{apiOrigin}/v1/consult`。`select_tool` 将 `{goal, candidates}` POST 到 `{apiOrigin}/v1/tools/select`。空会话令牌在本地失败，不会发请求。
+`consult` 将 `{goal, question, plan?, evidence?}` POST 到 `{apiOrigin}/v1/consult`。`select_tool` 将 `{goal, candidates}` POST 到 `{apiOrigin}/v1/tools/select`。空会话令牌在本地失败，不会发请求。回合第一步还会向 `/v1/tools/select` 提交 `skip`/`proceed`/`consult`；仅 `consult` 会调用 `/v1/consult` 并追加已记录的 `[advisor …]` 通知。出错时回合不变。
 
 ### 工具接口
 

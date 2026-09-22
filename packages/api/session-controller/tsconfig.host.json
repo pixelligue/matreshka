@@ -19,6 +19,7 @@
     "src/list.ts",
     "src/media-references.ts",
     "src/model-selection-projection.ts",
+    "src/playable-audio.ts",
     "src/skill-catalog.ts"
   ],
   "references": [

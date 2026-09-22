@@ -32,9 +32,11 @@ import {
   hasApiSessionSubagentOwner,
   inspectApiSession,
 } from './agent.ts'
+import { MAX_PLAYABLE_AUDIO_BYTES, playableAudioMediaType } from './playable-audio.ts'
 import type {
   SessionAttachmentRequest,
   SessionAttachmentValue,
+  SessionAudioValue,
   SessionCancelRequest,
   SessionCancelValue,
   SessionCreateRequest,
@@ -414,6 +416,79 @@ export class SessionCommandController {
   }
 
   /**
+   * Read one playable audio file after proving the Session log references it.
+   * Names outside the playable set and files above 32 MiB fail before a read.
+   * @param request - Session and attachment identities used for authorization.
+   * @returns the durable file reference, audio media type, and base64-encoded bytes.
+   */
+  async audio(request: SessionAttachmentRequest): Promise<SessionAudioValue> {
+    let source: SessionReadState
+    try {
+      source = await this.readSessionState(request.sessionId)
+    } catch (error) {
+      if (error instanceof ApiSessionNotFound) {
+        throw new RemoteError('session/not-found', error.message, { sessionId: request.sessionId })
+      }
+      throw new RemoteError(
+        'gateway/internal',
+        `audio authorization unavailable for session "${request.sessionId}": ${String(error)}`,
+        {},
+      )
+    }
+    const ref = referencedFile(source.events, String(request.attachmentId))
+    if (ref === undefined) {
+      throw new RemoteError(
+        'session/attachment-invalid',
+        'File is not referenced by this session.',
+        { reason: 'ATTACHMENT_NOT_REFERENCED' },
+      )
+    }
+    const mediaType = playableAudioMediaType(ref.name)
+    if (mediaType === undefined) {
+      throw new RemoteError(
+        'session/attachment-invalid',
+        `File "${ref.name}" is not playable audio.`,
+        { reason: 'NOT_PLAYABLE_AUDIO' },
+      )
+    }
+    if (ref.bytes > MAX_PLAYABLE_AUDIO_BYTES) {
+      throw new RemoteError(
+        'session/attachment-invalid',
+        `File "${ref.name}" exceeds the ${String(MAX_PLAYABLE_AUDIO_BYTES)} byte playback limit.`,
+        { reason: 'AUDIO_TOO_LARGE' },
+      )
+    }
+    try {
+      const chunks: Uint8Array[] = []
+      let total = 0
+      for await (const chunk of this.ctx.attachments.readFileStream(ref)) {
+        total += chunk.byteLength
+        if (total > MAX_PLAYABLE_AUDIO_BYTES) {
+          throw new RemoteError(
+            'session/attachment-invalid',
+            `File "${ref.name}" exceeds the ${String(MAX_PLAYABLE_AUDIO_BYTES)} byte playback limit.`,
+            { reason: 'AUDIO_TOO_LARGE' },
+          )
+        }
+        chunks.push(chunk)
+      }
+      const data = new Uint8Array(total)
+      let offset = 0
+      for (const chunk of chunks) {
+        data.set(chunk, offset)
+        offset += chunk.byteLength
+      }
+      return { attachment: ref, mediaType, data: Buffer.from(data).toString('base64') }
+    } catch (error) {
+      if (remoteErrorOf(error) !== undefined) throw error
+      if (error instanceof AttachmentError) {
+        throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
+      }
+      throw new RemoteError('gateway/internal', 'Unable to read audio attachment.', {})
+    }
+  }
+
+  /**
    * Mutate one still-pending queue occurrence without resuming a cold Agent.
    * @param request - Session, queue item, and requested mutation.
    * @returns acknowledgement that the queue mutation was applied.
@@ -644,6 +719,63 @@ function referencedImage(
 ): ImageAttachmentRef | undefined {
   for (const event of events) {
     const found = imageInEvent(event, ref => String(ref.attachmentId) === attachmentId)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+function fileBlockIn(
+  content: unknown,
+  match: (ref: FileAttachmentRef) => boolean,
+): FileAttachmentRef | undefined {
+  if (!Array.isArray(content)) return undefined
+  for (const value of content) {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) continue
+    const block = value as { readonly type?: unknown; readonly attachment?: unknown; readonly content?: unknown }
+    if (block.type === 'file' && typeof block.attachment === 'object' && block.attachment !== null) {
+      const ref = block.attachment as FileAttachmentRef
+      if (typeof ref.name === 'string' && typeof ref.bytes === 'number' && match(ref)) return ref
+    }
+    if (block.type === 'tool-result') {
+      const nested = fileBlockIn(block.content, match)
+      if (nested !== undefined) return nested
+    }
+  }
+  return undefined
+}
+
+function fileInEvent(
+  event: SessionEvent,
+  match: (ref: FileAttachmentRef) => boolean,
+): FileAttachmentRef | undefined {
+  const data = event.data as {
+    readonly content?: unknown
+    readonly message?: { readonly content?: unknown }
+    readonly inserted?: readonly { readonly content?: unknown }[]
+  }
+  const direct = fileBlockIn(data.content, match)
+  if (direct !== undefined) return direct
+  const message = fileBlockIn(data.message?.content, match)
+  if (message !== undefined) return message
+  for (const inserted of data.inserted ?? []) {
+    const found = fileBlockIn(inserted.content, match)
+    if (found !== undefined) return found
+  }
+  if (event.type === 'assistant/message' || event.type === 'assistant/attempt') {
+    for (const chunk of assistantStreamChunks(event.data.stream, 'block-end')) {
+      const found = fileBlockIn([chunk.block], match)
+      if (found !== undefined) return found
+    }
+  }
+  return undefined
+}
+
+function referencedFile(
+  events: readonly SessionEvent[],
+  attachmentId: string,
+): FileAttachmentRef | undefined {
+  for (const event of events) {
+    const found = fileInEvent(event, ref => String(ref.attachmentId) === attachmentId)
     if (found !== undefined) return found
   }
   return undefined

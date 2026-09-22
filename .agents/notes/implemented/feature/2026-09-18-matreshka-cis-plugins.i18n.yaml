@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-09-18-matreshka-cis-plugins.md
-2026-09-18-matreshka-cis-plugins.md: 7238fa68452b7548f0c76dc3f581264f7dae174b
-2026-09-18-matreshka-cis-plugins.zh.md: a2bed39eff3062f01b2a159f764fddd6436eb3da
+2026-09-18-matreshka-cis-plugins.md: f38cc0564f21ce9bb53368adfbf372ab81037006
+2026-09-18-matreshka-cis-plugins.zh.md: ae8b36a701843ed5836afda49f78895748e622a0

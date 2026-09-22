@@ -9,6 +9,12 @@
   ],
   "references": [
     {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
       "path": "../../util/launch-environment"
     },
     {
@@ -25,6 +31,9 @@
     },
     {
       "path": "../../credentials/credentials"
+    },
+    {
+      "path": "../../skill/skill"
     }
   ]
 }

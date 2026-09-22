@@ -1,0 +1,143 @@
+.section {
+  margin: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+}
+
+.plus {
+  box-sizing: border-box;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border-radius: 999px;
+  corner-shape: round;
+  border: 0.5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.plus[aria-expanded='true'],
+.plus:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.plus:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-primary);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0 0 10px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 6px 0;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+}
+
+.name,
+.nameButton {
+  font-weight: 500;
+}
+
+.nameButton {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.remove {
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.select {
+  height: 32px;
+  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  background: transparent;
+  color: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.area {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  padding: 8px;
+  border-radius: 8px;
+  border: 0.5px solid var(--dsw-alias-border-l2-darkmode-thin);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}

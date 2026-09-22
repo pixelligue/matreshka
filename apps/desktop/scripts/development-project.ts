@@ -79,6 +79,40 @@ function mirrorDependencyLinks(sourceRoot: string, destinationRoot: string): voi
 }
 
 /**
+ * Link nested `@scope` packages from each already-linked bundle into the
+ * flattened `node_modules/@scope`. Windows junctions make pnpm's relative
+ * nested symlinks invisible to `existsSync`/`require.resolve`.
+ */
+function hoistNestedScopePackages(destinationModules: string, scope: string): void {
+  const destScope = join(destinationModules, scope)
+  if (!existsSync(destScope)) return
+  for (const entry of readdirSync(destScope, { withFileTypes: true })) {
+    if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
+    let realBundle: string
+    try {
+      realBundle = realpathSync(join(destScope, entry.name))
+    } catch (error: unknown) {
+      // A dangling junction from the flattened graph is skipped.
+      void error
+      continue
+    }
+    const nestedScope = join(realBundle, 'node_modules', scope)
+    if (!existsSync(nestedScope)) continue
+    for (const nested of readdirSync(nestedScope, { withFileTypes: true })) {
+      if (!nested.isDirectory() && !nested.isSymbolicLink()) continue
+      const dest = join(destScope, nested.name)
+      if (existsSync(dest)) continue
+      try {
+        linkDirectory(realpathSync(join(nestedScope, nested.name)), dest)
+      } catch (error: unknown) {
+        // Nested package whose realpath cannot be resolved is skipped.
+        void error
+      }
+    }
+  }
+}
+
+/**
  * Replace one disposable project with links to the current built workspace.
  * @param options - Project destination, CLI package, and release identity.
  * @returns the absolute project directory supplied by the caller.
@@ -116,5 +150,6 @@ export function prepareDevelopmentProject(options: DevelopmentProjectOptions): s
   const hostLink = join(destinationModules, '@deepseek-ai', 'dsh-desktop-host')
   removeOwnedPath(hostLink)
   linkDirectory(options.hostDir, hostLink)
+  hoistNestedScopePackages(destinationModules, '@deepseek-ai')
   return options.projectDir
 }

@@ -1,7 +1,7 @@
 /** Register the Chat Conversation target, renderers, stats, and details surface. */
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
@@ -172,6 +172,7 @@ export function apply(ctx: Context, config: Config = {}): void {
             (attachment: ImageAttachmentRef) => ctx.uiConversation.imageUrl(sessionId, attachment),
             { peek: (attachment: ImageAttachmentRef) => ctx.uiConversation.peekImageUrl(sessionId, attachment) },
           ),
+          loadAudio: (file: FileAttachmentRef) => ctx.uiConversation.audioUrl(sessionId, file),
           chatScroll: {
             save: (position) => {
               if (position === null) chatScrollPositions.delete(sessionId)

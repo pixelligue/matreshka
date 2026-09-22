@@ -17,7 +17,7 @@ TEST_UPSTREAM_KEY = "sk_test_upstream_key"
 
 DEFAULT_SSE = (
     'data: {"id":"chatcmpl-mock","object":"chat.completion.chunk",'
-    '"created":1,"model":"deepseek-ai/DeepSeek-V4-Flash-0731",'
+    '"created":1,"model":"zai-org/GLM-5.3-Flash",'
     '"choices":[{"index":0,"delta":{"content":"Hello"}}]}\n\n'
     "data: [DONE]\n\n"
 )
@@ -33,7 +33,9 @@ def make_settings(tmp_path: Path, **overrides: object) -> Settings:
         "redis_url": "redis://127.0.0.1:6379/0",
         "session_ttl_seconds": 3600,
         "llm_upstream_base_url": TEST_UPSTREAM_BASE,
+        "llm_upstream_api_key": TEST_UPSTREAM_KEY,
         "llmtokenapi_api_key": TEST_UPSTREAM_KEY,
+        "openrouter_api_key": None,
     }
     values.update(overrides)
     return Settings(**values)  # type: ignore[arg-type]

@@ -860,6 +860,13 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
 @Remote('attachment') attachment(request: SessionAttachmentRequest): Promise<SessionAttachmentValue>
 
 /**
+ * Read one playable audio file proven reachable from the addressed Session log.
+ * @param request - Session and attachment identities used for authorization.
+ * @returns the durable file reference, audio media type, and base64-encoded bytes.
+ */
+@Remote('audio') audio(request: SessionAttachmentRequest): Promise<SessionAudioValue>
+
+/**
  * Mutate one still-pending queue occurrence on a live Agent.
  * @param request - Session, queue item, and requested mutation.
  * @returns acknowledgement that the queue mutation was applied.

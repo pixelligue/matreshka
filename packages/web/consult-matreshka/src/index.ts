@@ -4,27 +4,37 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { PreStepDecision } from '@deepseek-ai/dsh-agent'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import z from '@deepseek-ai/schemastery'
-import { defineTool } from '@deepseek-ai/dsh-tools'
 import {
   DEFAULT_MATRESHKA_API_ORIGIN,
-  postConsult,
-  postSelectTool,
 } from './client.ts'
+import { consultGatePreStep } from './gate.ts'
 
 export {
   DEFAULT_MATRESHKA_API_ORIGIN,
   postConsult,
   postSelectTool,
+  postSkillPlan,
 } from './client.ts'
+export {
+  CONSULT_GATE_CANDIDATES,
+  CONSULT_GATE_INSTRUCTION,
+  consultGateGoal,
+  consultGatePreStep,
+  userAuthoredText,
+} from './gate.ts'
 export type {
   ConsultInput,
   ConsultResult,
   MatreshkaSessionOptions,
   SelectToolInput,
   SelectToolResult,
+  SkillPlanInput,
+  SkillPlanResult,
+  SkillPlanSkill,
 } from './client.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
@@ -47,7 +57,7 @@ export const Config: z<Config> = z.object({
 const SESSION_TOKEN = credentialRef('MATRESHKA_SESSION_TOKEN')
 
 /**
- * Register `consult` and `select_tool`.
+ * Run Jev and, when a stack skill matches, install that skill before the model speaks.
  * @param ctx - plugin context.
  * @param config - optional API origin.
  */
@@ -69,71 +79,7 @@ export function apply(ctx: Context, config: Config = {}): void {
     sessionToken: session.token,
   })
 
-  ctx.tools.register(defineTool({
-    name: 'consult',
-    description:
-      'Ask the cheap consultant for a short verdict on a hard coding or analysis step. '
-      + 'Send only the goal, question, and relevant plan or evidence — never the full transcript. '
-      + 'Skip greetings and trivial questions. Returns verdict ok, revise, or risk.',
-    parameters: {
-      goal: { type: 'string', required: true, description: 'What you are trying to accomplish.' },
-      question: { type: 'string', required: true, description: 'The specific check to make.' },
-      plan: { type: 'string', description: 'Short plan snippet, if any.' },
-      evidence: { type: 'string', description: 'Diff, error, or other evidence. Keep it short.' },
-    },
-    output: {
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          verdict: { type: 'string', required: true },
-          detail: { type: 'string', required: true },
-        },
-      },
-      render: (_args, value) => [{ type: 'text', text: `${value.verdict}: ${value.detail}` }],
-    },
-    isConcurrencySafe: () => true,
-    async execute(args, exec) {
-      return await postConsult(options(), {
-        goal: args.goal,
-        question: args.question,
-        ...typeof args.plan === 'string' ? { plan: args.plan } : {},
-        ...typeof args.evidence === 'string' ? { evidence: args.evidence } : {},
-      }, exec.signal)
-    },
-  }))
-
-  ctx.tools.register(defineTool({
-    name: 'select_tool',
-    description:
-      'Pick one tool name when several tools could apply. Pass the goal and the candidate names. '
-      + 'Do not use this for greetings or when only one tool is obvious.',
-    parameters: {
-      goal: { type: 'string', required: true, description: 'What you need a tool to do.' },
-      candidates: {
-        type: 'array',
-        required: true,
-        items: { type: 'string' },
-        description: 'Tool names to choose among.',
-      },
-    },
-    output: {
-      schema: {
-        type: 'object',
-        additionalProperties: false,
-        properties: {
-          tool: { type: 'string', required: true },
-          confidence: { type: 'number', required: true },
-        },
-      },
-      render: (_args, value) => [{ type: 'text', text: `${value.tool} (${value.confidence})` }],
-    },
-    isConcurrencySafe: () => true,
-    async execute(args, exec) {
-      return await postSelectTool(options(), {
-        goal: args.goal,
-        candidates: args.candidates,
-      }, exec.signal)
-    },
-  }))
+  ctx.on('agent/pre-step', async ({ messages, step, signal }, next): Promise<PreStepDecision> => {
+    return await consultGatePreStep({ messages, step, signal }, next, options)
+  })
 }

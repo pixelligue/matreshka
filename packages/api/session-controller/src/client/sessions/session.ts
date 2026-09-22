@@ -317,6 +317,27 @@ export class Session implements SessionFace {
     return { ok: true, value: { attachment: result.value.attachment, data } }
   }
 
+  /**
+   * Resolve one playable audio file referenced by this session.
+   * @param attachmentId - opaque id found in the folded session log.
+   * @returns the authenticated reference, media type, and decoded bytes.
+   */
+  async readFileAudio(
+    attachmentId: AttachmentIdType,
+  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; mediaType: string; data: Uint8Array }>> {
+    const result = await this.remote.session.audio({
+      sessionId: this.sessionId,
+      attachmentId,
+    })
+    if (!result.ok) return result
+    const binary = atob(result.value.data)
+    const data = Uint8Array.from(binary, char => char.charCodeAt(0))
+    return {
+      ok: true,
+      value: { attachment: result.value.attachment, mediaType: result.value.mediaType, data },
+    }
+  }
+
   /** Apply one operation to a still-pending queue occurrence. */
   async updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{ accepted: true }>> {
     return this.remote.session.updateQueue({ sessionId: this.sessionId, itemId, action })

@@ -50,7 +50,7 @@ When `stream` is true or omitted, the API MUST use the SSE framing above. When `
 
 ### Requirement: Allowlisted models
 
-The API MUST accept only the public id `matrena`. It MUST map that id to the LLMTOKENAPI catalog id `deepseek-ai-deepseek-v4-flash-0731`. Vendor ids and other catalog ids MUST return 400 without calling the upstream. SSE chunks returned to the client MUST use `model` `matrena`. The upstream request MUST use `Authorization: Bearer` with `LLMTOKENAPI_API_KEY` and MUST NOT include that key in the client body.
+The API MUST accept only the public id `matrena`. That id MUST try Gonka models in order: `zai-org/GLM-5.3-Flash`, then `deepseek-ai/DeepSeek-V4-Flash-0731`. Any Gonka failure except HTTP 401 or 403 MUST try the next Gonka model before any other provider. HTTP 401 or 403 skips the remaining Gonka models. If Gonka produced no stream, the API MUST try OpenRouter model `z-ai/glm-5.3-flash` when `OPENROUTER_API_KEY` is set. Vendor ids and other catalog ids MUST return 400 without calling the upstream. SSE chunks returned to the client MUST use `model` `matrena`. Gonka requests MUST use `Authorization: Bearer` with `LLM_UPSTREAM_API_KEY` against `{LLM_UPSTREAM_BASE_URL}/chat/completions`. OpenRouter requests MUST use `OPENROUTER_API_KEY`. Neither key may appear in the client body. If both keys are missing, the API MUST return 503 without calling an upstream.
 
 #### Scenario: Unknown model rejected
 
@@ -66,3 +66,18 @@ The API MUST accept only the public id `matrena`. It MUST map that id to the LLM
 
 - **WHEN** a client with a valid token posts the upstream vendor model id
 - **THEN** the response is 400 and the upstream is not contacted
+
+#### Scenario: Second model after a retryable failure
+
+- **WHEN** the first Gonka model returns 502 and the second returns SSE
+- **THEN** the client receives 200 SSE with `model` `matrena` and the upstream was called twice
+
+#### Scenario: Missing Gonka key
+
+- **WHEN** `LLM_UPSTREAM_API_KEY` and `OPENROUTER_API_KEY` are empty and a client posts `matrena`
+- **THEN** the response is 503 and the upstream is not contacted
+
+#### Scenario: OpenRouter after both Gonka models fail
+
+- **WHEN** both Gonka models return 503 and OpenRouter returns SSE
+- **THEN** the client receives 200 SSE with `model` `matrena` and OpenRouter was called with `z-ai/glm-5.3-flash`

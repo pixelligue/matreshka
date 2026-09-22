@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -65,6 +65,36 @@ describe('desktop development project', () => {
     }
     expect(manifest.dependencies['@deepseek-ai/dsh']).toBe('1.2.3')
     expect(manifest.dependencies['@deepseek-ai/dsh-desktop-host']).toBe('1.2.3')
+  })
+
+  it('hoists a bundle-nested scoped package omitted from the flattened graph', () => {
+    const root = temporaryRoot()
+    const cli = join(root, 'apps', 'cli')
+    const host = join(root, 'apps', 'desktop-host')
+    const dependencies = join(root, 'workspace-dependencies')
+    const plugin = join(root, 'packages', 'web', 'images-matreshka')
+    mkdirSync(join(cli, 'lib'), { recursive: true })
+    mkdirSync(join(host, 'lib'), { recursive: true })
+    mkdirSync(plugin, { recursive: true })
+    mkdirSync(join(dependencies, '@deepseek-ai', 'dsh-web-app', 'node_modules', '@deepseek-ai'), { recursive: true })
+    writeFileSync(join(cli, 'package.json'), '{"name":"@deepseek-ai/dsh","version":"1.2.3"}\n')
+    writeFileSync(join(host, 'package.json'), '{"name":"@deepseek-ai/dsh-desktop-host","version":"1.2.3"}\n')
+    writeFileSync(join(host, 'lib', 'index.js'), '')
+    writeFileSync(join(plugin, 'package.json'), '{"name":"@deepseek-ai/dsh-images-matreshka"}\n')
+    symlinkSync(
+      realpathSync(plugin),
+      join(dependencies, '@deepseek-ai', 'dsh-web-app', 'node_modules', '@deepseek-ai', 'dsh-images-matreshka'),
+      process.platform === 'win32' ? 'junction' : 'dir',
+    )
+    const project = prepareDevelopmentProject({
+      projectDir: join(root, 'development'),
+      cliDir: cli,
+      hostDir: host,
+      dependencyDir: dependencies,
+      release: release(),
+    })
+    expect(realpathSync(join(project, 'node_modules', '@deepseek-ai', 'dsh-images-matreshka')))
+      .toBe(realpathSync(plugin))
   })
 
   it('rejects a CLI package from another release', () => {

@@ -1,6 +1,6 @@
 /** Per-Session target-neutral Conversation assembly. */
 import { Service, type Context } from '@deepseek-ai/cordis'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
   ISessions, SessionBinding, SessionEventSource, SessionEventWindow,
 } from '@deepseek-ai/dsh-api-session-controller/client'
@@ -20,6 +20,7 @@ import { inspectRequestPrompt } from '../contract/request-inspection.ts'
 import { inspectSystemPrompt, type SystemPromptState } from '../contract/system-prompt.ts'
 import { ConversationNodeAssembler } from './assembler.ts'
 import { ConversationEventRegistry } from './event-registry.ts'
+import { HistoricalAudioCache } from './historical-audio.ts'
 import { HistoricalImageCache } from './historical-images.ts'
 import { ConversationViewRegistry } from './view-registry.ts'
 
@@ -179,6 +180,7 @@ export class UiConversation extends Service {
   readonly views: ConversationViewRegistry
   private readonly bindings = new Map<SessionId, BindingRecord>()
   private readonly images: HistoricalImageCache
+  private readonly audio: HistoricalAudioCache
 
   /**
    * @param ctx - owning Client context.
@@ -189,6 +191,7 @@ export class UiConversation extends Service {
     this.events = new ConversationEventRegistry(ctx)
     this.views = new ConversationViewRegistry(ctx)
     this.images = new HistoricalImageCache(ctx, sessions)
+    this.audio = new HistoricalAudioCache(ctx, sessions)
     const rebuild = (): void => {
       for (const record of this.bindings.values()) record.binding.rebuild()
     }
@@ -270,6 +273,28 @@ export class UiConversation extends Service {
    */
   seedImageUrl(sessionId: SessionId, attachment: ImageAttachmentRef, url: string): boolean {
     return this.images.seed(sessionId, attachment, url)
+  }
+
+  /**
+   * Resolve one session-authorized audio URL. A URL seeded from the picked file
+   * is reused; otherwise the Host reads the referenced bytes.
+   * @param sessionId - Session authorization and lifetime scope.
+   * @param attachment - Durable file reference from a session event or upload.
+   * @returns browser URL valid until the Session binding is released.
+   */
+  audioUrl(sessionId: SessionId, attachment: FileAttachmentRef): Promise<string> {
+    return this.audio.resolve(sessionId, attachment)
+  }
+
+  /**
+   * Adopt a local object URL for one uploaded audio file.
+   * @param sessionId - Session authorization and lifetime scope.
+   * @param attachment - Durable file reference from the completed upload.
+   * @param url - browser URL to adopt.
+   * @returns whether the cache took URL ownership.
+   */
+  seedAudioUrl(sessionId: SessionId, attachment: FileAttachmentRef, url: string): boolean {
+    return this.audio.seed(sessionId, attachment, url)
   }
 
   /**

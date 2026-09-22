@@ -39,6 +39,14 @@
   gap: 16px;
 }
 
+.hint {
+  margin: 0 0 16px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
 .label {
   display: flex;
   flex-direction: column;

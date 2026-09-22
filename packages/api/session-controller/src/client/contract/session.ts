@@ -98,6 +98,14 @@ export interface ISession {
     attachmentId: AttachmentIdType,
   ): Promise<RemoteResult<{ attachment: ImageAttachmentRef; data: Uint8Array }>>
   /**
+   * Resolve one playable audio file referenced by this session.
+   * @param attachmentId - opaque id found in the folded session log.
+   * @returns the authenticated reference, media type, and decoded bytes.
+   */
+  readFileAudio(
+    attachmentId: AttachmentIdType,
+  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; mediaType: string; data: Uint8Array }>>
+  /**
    * Apply one edit, remove, or Steer action to a still-pending queue occurrence.
    * @param itemId - agent-owned inbox occurrence identity.
    * @param action - requested queue operation.

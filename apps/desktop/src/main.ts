@@ -11,6 +11,7 @@ import {
   Menu,
   net,
   protocol,
+  shell,
   type IpcMainInvokeEvent,
 } from 'electron'
 import { createDesktopAnalytics, electronNetPoster, hostRelease } from './analytics.ts'
@@ -20,13 +21,55 @@ import { DesktopHostProcess } from './host-process.ts'
 import { DesktopBackendController, type DesktopBackendState } from './backend-controller.ts'
 import { DESKTOP_IPC, type DesktopUpdateState } from './ipc.ts'
 import { formatDesktopMessage, resolveDesktopLocale } from './locale.ts'
+import {
+  DESKTOP_AUTH_SCHEME,
+  findDesktopAuthUrl,
+  landingHandoffPath,
+  parseDesktopAuthCode,
+  protocolClientRegistration,
+} from './desktop-auth.ts'
 import { claimDesktopSingleInstance } from './single-instance.ts'
+import { editContextActions, httpUrl, type EditContextAction } from './edit-context-menu.ts'
+import { fetchGithubText } from './github-import.ts'
+import { parseMcpServers, readMcpServers, writeMcpServers, mcpServersPath } from './mcp-servers.ts'
+import { parseSkills, readSkills, skillsIndexPath, writeSkills } from './skills.ts'
 import { DesktopUpdateCoordinator } from './update-coordinator.ts'
 import { desktopErrorState } from './startup-error.ts'
 import { startupFailureDocument } from './startup-document.ts'
 
 const SCHEME = 'dsh-app'
+const pendingAuthCodes: string[] = []
+let publishAuthCode = (code: string): void => { pendingAuthCodes.push(code) }
 let focusPrimaryWindow = (): void => {}
+
+function consumeDesktopAuthUrl(raw: string | undefined): void {
+  if (raw === undefined) return
+  const code = parseDesktopAuthCode(raw)
+  if (code === undefined) return
+  publishAuthCode(code)
+}
+
+function registerDesktopAuthProtocol(): void {
+  const registration = protocolClientRegistration(process.defaultApp === true, {
+    execPath: process.execPath,
+    appPath: app.getAppPath(),
+    userDataDir: app.getPath('userData'),
+  })
+  if (registration === undefined) {
+    app.setAsDefaultProtocolClient(DESKTOP_AUTH_SCHEME)
+    return
+  }
+  app.setAsDefaultProtocolClient(DESKTOP_AUTH_SCHEME, registration.path, registration.args)
+}
+
+function landingLoginUrl(localeId: 'en' | 'zh-CN' | 'ru'): string {
+  const origin = (process.env.MATRESHKA_LANDING_ORIGIN ?? 'http://127.0.0.1:3020').replace(/\/$/, '')
+  return `${origin}${landingHandoffPath(localeId)}`
+}
+
+function desktopLocalLogin(): boolean {
+  return process.env.MATRESHKA_LOCAL_LOGIN === '1'
+}
 
 function hideNonMacApplicationMenu(window?: BrowserWindow): void {
   if (process.platform === 'darwin') return
@@ -123,8 +166,48 @@ function createWindow(preload: string, show = false): BrowserWindow {
     },
   })
   hideNonMacApplicationMenu(window)
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    const external = httpUrl(url)
+    if (external !== undefined) void shell.openExternal(external)
+    return { action: 'deny' }
+  })
+  window.webContents.on('context-menu', (_event, params) => {
+    const messages = resolveDesktopLocale(app.getLocale()).messages
+    const labels: Record<EditContextAction, string> = {
+      open: messages.openLink,
+      cut: messages.cut,
+      copy: messages.copy,
+      paste: messages.paste,
+      selectAll: messages.selectAll,
+    }
+    const roles: Record<Exclude<EditContextAction, 'open'>, 'cut' | 'copy' | 'paste' | 'selectAll'> = {
+      cut: 'cut',
+      copy: 'copy',
+      paste: 'paste',
+      selectAll: 'selectAll',
+    }
+    const actions = editContextActions({
+      linkURL: params.linkURL,
+      selectionText: params.selectionText,
+      isEditable: params.isEditable,
+      canCut: params.editFlags.canCut,
+      canCopy: params.editFlags.canCopy,
+      canPaste: params.editFlags.canPaste,
+      canSelectAll: params.editFlags.canSelectAll,
+    })
+    if (actions.length === 0) return
+    const link = httpUrl(params.linkURL)
+    Menu.buildFromTemplate(actions.map(action => action === 'open'
+      ? { label: labels.open, click: () => { if (link !== undefined) void shell.openExternal(link) } }
+      : { role: roles[action], label: labels[action] })).popup({ window })
+  })
   window.webContents.on('will-navigate', (event, url) => {
+    const external = httpUrl(url)
+    if (external !== undefined) {
+      event.preventDefault()
+      void shell.openExternal(external)
+      return
+    }
     if (new URL(url).protocol !== `${SCHEME}:`) event.preventDefault()
     const page = emergencyPages.get(window)
     if (page === undefined || page.busy || window.webContents.getURL() !== page.url) return
@@ -415,6 +498,48 @@ async function main(): Promise<void> {
       : undefined
     analytics.track(name, record)
   })
+  ipcMain.handle(DESKTOP_IPC.mcpList, (event) => {
+    assertDesktopSender(event, ['app'])
+    return readMcpServers(mcpServersPath())
+  })
+  ipcMain.handle(DESKTOP_IPC.mcpSave, (event, value: unknown) => {
+    assertDesktopSender(event, ['app'])
+    writeMcpServers(mcpServersPath(), parseMcpServers(value))
+  })
+  ipcMain.handle(DESKTOP_IPC.skillsList, (event) => {
+    assertDesktopSender(event, ['app'])
+    return readSkills(skillsIndexPath())
+  })
+  ipcMain.handle(DESKTOP_IPC.skillsSave, (event, value: unknown) => {
+    assertDesktopSender(event, ['app'])
+    writeSkills(skillsIndexPath(), parseSkills(value))
+  })
+  ipcMain.handle(DESKTOP_IPC.githubImport, async (event, value: unknown, kind: unknown) => {
+    assertDesktopSender(event, ['app'])
+    if (typeof value !== 'string') throw new Error('import URL must be a string')
+    if (kind !== 'skill' && kind !== 'mcp') throw new Error('import kind must be skill or mcp')
+    return fetchGithubText(value, kind)
+  })
+  ipcMain.handle(DESKTOP_IPC.authLocalLogin, (event) => {
+    assertDesktopSender(event, ['app'])
+    return desktopLocalLogin()
+  })
+  ipcMain.handle(DESKTOP_IPC.authOpenLogin, async (event) => {
+    assertDesktopSender(event, ['app'])
+    const url = landingLoginUrl(locale.id)
+    const parsed = new URL(url)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('dsh desktop: landing origin must be HTTP(S)')
+    }
+    await shell.openExternal(url)
+  })
+  publishAuthCode = (code: string): void => {
+    for (const window of BrowserWindow.getAllWindows()) {
+      window.webContents.send(DESKTOP_IPC.authCode, code)
+    }
+  }
+  for (const code of pendingAuthCodes.splice(0)) publishAuthCode(code)
+  registerDesktopAuthProtocol()
 
   const checkAndPrompt = async (manual: boolean): Promise<void> => {
     const state = await updates.check()
@@ -517,7 +642,17 @@ async function main(): Promise<void> {
   setTimeout(() => { void checkAndPrompt(false) }, 10_000)
 }
 
-const ownsDesktopInstance = claimDesktopSingleInstance(app, () => { focusPrimaryWindow() })
+const ownsDesktopInstance = claimDesktopSingleInstance(app, (commandLine) => {
+  focusPrimaryWindow()
+  consumeDesktopAuthUrl(findDesktopAuthUrl(commandLine))
+})
+if (ownsDesktopInstance) {
+  consumeDesktopAuthUrl(findDesktopAuthUrl(process.argv))
+  app.on('open-url', (event, url) => {
+    event.preventDefault()
+    consumeDesktopAuthUrl(url)
+  })
+}
 
 if (ownsDesktopInstance) void app.whenReady().then(main).catch(async (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error)

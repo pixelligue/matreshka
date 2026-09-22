@@ -11,7 +11,13 @@ import type { MessageImageLabels } from '../MessageImage.tsx'
  * @returns translated lightbox labels.
  */
 export function lightboxLabels(t: TranslateNS<'conversation'>): ImageLightboxLabels {
-  return { dialog: t('image.preview'), close: t('image.closePreview') }
+  return {
+    dialog: t('image.preview'),
+    close: t('image.closePreview'),
+    download: t('image.download'),
+    copy: t('image.copy'),
+    share: t('image.share'),
+  }
 }
 
 /**
@@ -27,6 +33,12 @@ export function messageImageLabels(t: TranslateNS<'conversation'>): MessageImage
     loading: t('image.loading'),
     loadFailed: t('image.loadFailed'),
     lightbox: lightboxLabels(t),
+    download: t('image.download'),
+    copy: t('image.copy'),
+    share: t('image.share'),
+    prev: t('image.prev'),
+    next: t('image.next'),
+    position: (current, total) => t('image.position', { current: String(current), total: String(total) }),
   }
 }
 

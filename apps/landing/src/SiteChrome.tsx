@@ -3,6 +3,7 @@ import type { LandingCopy } from './locales'
 import {
   homeHref,
   homeSectionHref,
+  loginHref,
   matrenaHref,
   otherLocaleHref,
   type LandingDocument,
@@ -17,6 +18,8 @@ export interface SiteChromeProps {
   locale: LandingLocale
   document: LandingDocument
   children: ReactNode
+  /** Query string to keep on the other-locale link, including `?`. */
+  query?: string
 }
 
 /**
@@ -24,10 +27,10 @@ export interface SiteChromeProps {
  * @param props - locale copy, current document, and page body
  * @returns the document frame
  */
-export function SiteChrome({ copy, locale, document, children }: SiteChromeProps): ReactNode {
+export function SiteChrome({ copy, locale, document, children, query = '' }: SiteChromeProps): ReactNode {
   const home = homeHref(locale)
   const matrena = matrenaHref(locale)
-  const otherHref = otherLocaleHref(locale, document)
+  const otherHref = `${otherLocaleHref(locale, document)}${query}`
   const otherLabel = locale === 'ru' ? copy.langEn : copy.langRu
 
   return (
@@ -43,6 +46,12 @@ export function SiteChrome({ copy, locale, document, children }: SiteChromeProps
           <a href={homeSectionHref(locale, 'plugins')}>{copy.navPlugins}</a>
         </nav>
         <div className="ml-auto flex items-center gap-3 text-sm">
+          <a
+            href={loginHref(locale)}
+            className="rounded-full px-3 py-1.5 text-[#3d4450] hover:bg-black/5"
+          >
+            {copy.navSignIn}
+          </a>
           <a
             href={otherHref}
             hrefLang={locale === 'ru' ? 'en' : 'ru'}

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
-  ComposerAttachment, ComposerAttachmentsProps, ComposerImageAttachment,
+  ComposerAttachment, ComposerAttachmentsProps, ComposerFileAttachment, ComposerImageAttachment,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
-import { IconCloseFill14 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { AudioPlayer, IconCloseFill14, isPlayableAudioFile } from '@deepseek-ai/dsh-client-ui-primitives'
 import { AttachmentRail } from '../AttachmentRail.tsx'
 import type { AttachmentRailItem } from '../AttachmentRail.tsx'
 import { DropOverlay } from '../DropOverlay.tsx'
@@ -15,6 +15,21 @@ import css from './ComposerAttachments.module.css'
 /** Rail item retaining its browser-owned attachment for callbacks. */
 interface ComposerRailItem extends AttachmentRailItem {
   attachment: ComposerAttachment
+}
+
+/** Object URL for one picked audio file, revoked when the row unmounts. */
+function DraftAudio({ file, label }: { file: File; label: string }) {
+  const [url, setUrl] = useState<string | undefined>(undefined)
+  useEffect(() => {
+    if (typeof URL.createObjectURL !== 'function') return
+    const next = URL.createObjectURL(file)
+    setUrl(next)
+    return () => {
+      if (typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(next)
+    }
+  }, [file])
+  if (url === undefined) return null
+  return <AudioPlayer src={url} label={label} />
 }
 
 /** Draft image previews, pending-file cards, drop target, and original-image preview. */
@@ -33,10 +48,15 @@ export function ComposerAttachments({
     return installDocumentDropEvents(canAcceptDrop, onAddFiles, dragDepth, setDragActive)
   }, [canAcceptDrop, onAddFiles])
 
-  const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
-    id: attachment.id,
-    attachment,
-  })), [attachments])
+  const audioDrafts = useMemo(
+    () => attachments.filter((attachment): attachment is ComposerFileAttachment =>
+      attachment.kind === 'file' && isPlayableAudioFile(attachment.file)),
+    [attachments],
+  )
+  const railItems = useMemo<ComposerRailItem[]>(() => attachments.flatMap((attachment) => {
+    if (attachment.kind === 'file' && isPlayableAudioFile(attachment.file)) return []
+    return [{ id: attachment.id, attachment }]
+  }), [attachments])
 
   return (
     <>
@@ -45,6 +65,44 @@ export function ComposerAttachments({
           disabled={!canAcceptDrop}
           labels={dropOverlayLabels(t, canAcceptDrop, dropLimits)}
         />
+      )}
+      {audioDrafts.length > 0 && (
+        <div className={css.audioList}>
+          {audioDrafts.map((attachment) => {
+            const upload = uploads[attachment.id]
+            const name = attachment.file.name || t('file.label')
+            const failed = upload?.status === 'error'
+            return (
+              <div key={attachment.id} className={css.audioRow}>
+                <div className={css.audioHead}>
+                  <span className={css.audioName} title={name}>{name}</span>
+                  <button
+                    type="button"
+                    className={css.audioRemove}
+                    aria-label={t('file.remove', { name })}
+                    onClick={() => { onRemoveAttachment(attachment.id) }}
+                  >
+                    <IconCloseFill14 size={12} />
+                  </button>
+                </div>
+                {failed
+                  ? (
+                    <button
+                      type="button"
+                      className={css.audioStatus}
+                      onClick={() => { onRetryFile(attachment.id) }}
+                    >
+                      {t('file.uploadFailed')}
+                    </button>
+                  )
+                  : <DraftAudio file={attachment.file} label={t('audio.label', { name })} />}
+                {upload?.status === 'uploading' && (
+                  <span className={css.audioStatus}>{t('file.uploading')}</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
       )}
       {railItems.length > 0 && (
         <div className={css.rail}>

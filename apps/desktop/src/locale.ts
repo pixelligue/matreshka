@@ -49,6 +49,11 @@ export const en = {
   refreshing: 'Refreshing…',
   refreshed: 'Plugin list refreshed.',
   loadingPlugins: 'Reading Desktop plugins…',
+  openLink: 'Open link',
+  cut: 'Cut',
+  copy: 'Copy',
+  paste: 'Paste',
+  selectAll: 'Select all',
 } as const
 
 /** Every Desktop locale supplies the complete English key set. */
@@ -103,6 +108,11 @@ export const zh = {
   refreshing: '正在刷新…',
   refreshed: '插件列表已刷新。',
   loadingPlugins: '正在读取桌面插件…',
+  openLink: '打开链接',
+  cut: '剪切',
+  copy: '复制',
+  paste: '粘贴',
+  selectAll: '全选',
 } as const satisfies DesktopMessages
 
 export const ru = {
@@ -154,6 +164,11 @@ export const ru = {
   refreshing: 'Обновление…',
   refreshed: 'Список плагинов обновлён.',
   loadingPlugins: 'Чтение плагинов Desktop…',
+  openLink: 'Открыть ссылку',
+  cut: 'Вырезать',
+  copy: 'Копировать',
+  paste: 'Вставить',
+  selectAll: 'Выделить всё',
 } as const satisfies DesktopMessages
 
 /** Locale payload exposed to the Desktop-owned renderer. */

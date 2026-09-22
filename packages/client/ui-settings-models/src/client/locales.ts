@@ -112,10 +112,15 @@ export const en = {
   signInSubmitting: 'Signing in…',
   signInInvalid: 'Invalid email or password.',
   signInNetwork: 'Could not reach Matreshka. Check that the API is running.',
+  signInWebsite: 'Sign in on the website',
+  signInWebsiteBusy: 'Opening the website…',
+  signInWebsiteHint: 'Create an account and sign in on the Matreshka site. This app continues on its own.',
   signOut: 'Sign out',
   signOutTitle: 'Session',
   signOutBusy: 'Signing out…',
   profile: 'Profile',
+  profileMenu: 'Account menu',
+  profileSettings: 'Settings',
 }
 
 /** Russian strings (same keys as {@link en}). */
@@ -230,10 +235,15 @@ export const ru: { [Key in keyof typeof en]: string } = {
   signInSubmitting: 'Вход…',
   signInInvalid: 'Неверная почта или пароль.',
   signInNetwork: 'Не удалось связаться с Matreshka. Проверьте, что API запущен.',
+  signInWebsite: 'Войти через сайт',
+  signInWebsiteBusy: 'Открываем сайт…',
+  signInWebsiteHint: 'Зарегистрируйтесь и войдите на сайте Matreshka. Приложение продолжит само.',
   signOut: 'Выйти',
   signOutTitle: 'Сессия',
   signOutBusy: 'Выход…',
   profile: 'Профиль',
+  profileMenu: 'Меню профиля',
+  profileSettings: 'Настройки',
 }
 
 /** The settings.models namespace key union. */
@@ -351,8 +361,13 @@ export const zh: { [Key in keyof typeof en]: string } = {
   signInSubmitting: '正在登录…',
   signInInvalid: '邮箱或密码不正确。',
   signInNetwork: '无法连接 Matreshka，请确认 API 已启动。',
+  signInWebsite: '通过网站登录',
+  signInWebsiteBusy: '正在打开网站…',
+  signInWebsiteHint: '在 Matreshka 网站注册并登录。应用会自行继续。',
   signOut: '退出登录',
   signOutTitle: '会话',
   signOutBusy: '正在退出…',
   profile: '个人资料',
+  profileMenu: '账户菜单',
+  profileSettings: '设置',
 }

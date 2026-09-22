@@ -1,8 +1,7 @@
 /**
- * Blocking Matreshka email/password overlay. Login hits the product API
- * and stores the session token as a Host credential. The page covers the
- * viewport until a session exists, including after Sign out while a chat
- * session is already open.
+ * Blocking Matreshka sign-in overlay. Desktop opens the public site and waits
+ * for a one-time protocol code. The web GUI (no Desktop auth bridge) still
+ * collects email/password.
  */
 
 import { useEffect, useId, useState } from 'react'
@@ -33,10 +32,20 @@ export interface MatreshkaSignInInjected {
 export type MatreshkaSignInDialogProps =
   PropsRuntime<'shell.overlay'> & InjectFace<MatreshkaSignInInjected>
 
-type SignInPhase = 'checking' | 'needed' | 'signed-in'
+type SignInPhase = 'checking' | 'local' | 'website' | 'signed-in'
+
+interface DesktopAuthBridge {
+  localLogin(): Promise<boolean>
+  openWebsiteLogin(): Promise<void>
+  subscribeAuthCode(listener: (code: string) => void): () => void
+}
+
+function desktopAuth(): DesktopAuthBridge | undefined {
+  return (globalThis as typeof globalThis & { dshDesktop?: { auth?: DesktopAuthBridge } }).dshDesktop?.auth
+}
 
 /**
- * Prompt for Matreshka email/password until a session token is stored.
+ * Prompt for Matreshka sign-in until a session token is stored.
  * @param props - overlay seat plus injected operations.
  * @returns the full-viewport sign-in page, or null while the overlay decides.
  */
@@ -48,37 +57,86 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const origin = apiOrigin.replace(/\/$/, '')
+
+  const acceptToken = async (token: string, account: string): Promise<boolean> => {
+    const refused = await operations.storeCredential(MATRESHKA_SESSION_TOKEN, token)
+    if (refused !== undefined) return false
+    writeSession(token, account)
+    trackMatreshkaAnalytics('ui_sign_in')
+    setPhase('signed-in')
+    return true
+  }
 
   useEffect(() => {
     let cancelled = false
-    const hideIfSessionExists = (configured: boolean): void => {
+    const decide = (hasSession: boolean): void => {
       if (cancelled) return
-      if (configured && readSessionToken().length > 0) {
+      if (hasSession) {
         setPhase('signed-in')
         return
       }
-      setPhase('needed')
-    }
-    void operations.describeCredential(MATRESHKA_SESSION_TOKEN).then(
-      (info) => { hideIfSessionExists(info?.configured === true) },
-      () => { hideIfSessionExists(false) },
-    )
-    const onSession = (): void => {
-      if (readSessionToken().length === 0) {
-        setPhase('needed')
+      const auth = desktopAuth()
+      if (auth === undefined) {
+        setPhase('local')
         return
       }
-      setPhase('signed-in')
+      void auth.localLogin().then(
+        (local) => {
+          if (cancelled || readSessionToken().length > 0) return
+          setPhase(local ? 'local' : 'website')
+        },
+        () => {
+          if (!cancelled) setPhase('website')
+        },
+      )
+    }
+    void operations.describeCredential(MATRESHKA_SESSION_TOKEN).then(
+      (info) => { decide(info?.configured === true && readSessionToken().length > 0) },
+      () => { decide(false) },
+    )
+    const onSession = (): void => {
+      decide(readSessionToken().length > 0)
     }
     window.addEventListener(SESSION_EVENT, onSession)
+    const auth = desktopAuth()
+    const stopCodes = auth?.subscribeAuthCode((code) => {
+      void (async () => {
+        setBusy(true)
+        setError(null)
+        try {
+          const response = await fetch(`${origin}/v1/auth/exchange`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code }),
+          })
+          if (!response.ok) {
+            setError(t('signInNetwork'))
+            return
+          }
+          const body = await response.json() as { token?: unknown; email?: unknown }
+          if (typeof body.token !== 'string' || body.token.length === 0) {
+            setError(t('signInNetwork'))
+            return
+          }
+          const account = typeof body.email === 'string' ? body.email : ''
+          if (!await acceptToken(body.token, account)) setError(t('signInNetwork'))
+        } catch {
+          setError(t('signInNetwork'))
+        } finally {
+          setBusy(false)
+        }
+      })()
+    })
     return () => {
       cancelled = true
       window.removeEventListener(SESSION_EVENT, onSession)
+      stopCodes?.()
     }
-  }, [operations])
+  }, [operations, origin, t])
 
   useEffect(() => {
-    if (phase !== 'needed') return
+    if (phase !== 'local' && phase !== 'website') return
     const appRoot = document.getElementById('root')
     if (appRoot === null) return
     const previous = appRoot.inert
@@ -92,7 +150,7 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
       setBusy(true)
       setError(null)
       try {
-        const response = await fetch(`${apiOrigin.replace(/\/$/, '')}/v1/auth/login`, {
+        const response = await fetch(`${origin}/v1/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -110,15 +168,8 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
           setError(t('signInNetwork'))
           return
         }
-        const refused = await operations.storeCredential(MATRESHKA_SESSION_TOKEN, body.token)
-        if (refused !== undefined) {
-          setError(t('signInNetwork'))
-          return
-        }
         const signedInEmail = typeof body.email === 'string' && body.email.length > 0 ? body.email : email
-        writeSession(body.token, signedInEmail)
-        trackMatreshkaAnalytics('ui_sign_in')
-        setPhase('signed-in')
+        if (!await acceptToken(body.token, signedInEmail)) setError(t('signInNetwork'))
       } catch {
         setError(t('signInNetwork'))
       } finally {
@@ -127,7 +178,21 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
     })()
   }
 
-  if (phase !== 'needed') return null
+  const onWebsite = (): void => {
+    void (async () => {
+      setBusy(true)
+      setError(null)
+      try {
+        await desktopAuth()?.openWebsiteLogin()
+      } catch {
+        setError(t('signInNetwork'))
+      } finally {
+        setBusy(false)
+      }
+    })()
+  }
+
+  if (phase !== 'local' && phase !== 'website') return null
 
   return createPortal((
     <div
@@ -148,37 +213,47 @@ export function MatreshkaSignInDialog(props: MatreshkaSignInDialogProps): ReactN
           data-matreshka-logo-slot=""
         />
         <h1 id={titleId} className={styles.title}>{t('signInTitle')}</h1>
-        <form className={styles.form} onSubmit={onSubmit}>
-          <label className={styles.label}>
-            {t('signInEmail')}
-            <input
-              className={styles.input}
-              type="text"
-              name="email"
-              autoComplete="username"
-              autoFocus
-              value={email}
-              onChange={event => setEmail(event.target.value)}
-              required
-            />
-          </label>
-          <label className={styles.label}>
-            {t('signInPassword')}
-            <input
-              className={styles.input}
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={event => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          {error !== null && <p className={styles.error} role="alert">{error}</p>}
-          <button className={styles.submit} type="submit" disabled={busy}>
-            {busy ? t('signInSubmitting') : t('signInSubmit')}
-          </button>
-        </form>
+        {phase === 'website' ? (
+          <>
+            <p className={styles.hint}>{t('signInWebsiteHint')}</p>
+            {error !== null && <p className={styles.error} role="alert">{error}</p>}
+            <button className={styles.submit} type="button" disabled={busy} onClick={onWebsite}>
+              {busy ? t('signInWebsiteBusy') : t('signInWebsite')}
+            </button>
+          </>
+        ) : (
+          <form className={styles.form} onSubmit={onSubmit}>
+            <label className={styles.label}>
+              {t('signInEmail')}
+              <input
+                className={styles.input}
+                type="text"
+                name="email"
+                autoComplete="username"
+                autoFocus
+                value={email}
+                onChange={event => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label className={styles.label}>
+              {t('signInPassword')}
+              <input
+                className={styles.input}
+                type="password"
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={event => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            {error !== null && <p className={styles.error} role="alert">{error}</p>}
+            <button className={styles.submit} type="submit" disabled={busy}>
+              {busy ? t('signInSubmitting') : t('signInSubmit')}
+            </button>
+          </form>
+        )}
       </div>
     </div>
   ), document.body)

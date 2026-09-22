@@ -27,7 +27,7 @@ From the repository root:
 pnpm run dev:landing
 ```
 
-The app listens on `http://127.0.0.1:3020`. Russian is `/`. English is `/en`. Set `MATRESHKA_WINDOWS_DOWNLOAD_URL` to the Windows installer URL; when unset the download control stays visible and does not navigate.
+The app listens on `http://127.0.0.1:3020`. Russian is `/`. English is `/en`. Login is `/login` (`/en/login`); register is `/register` (`/en/register`). Set `NEXT_PUBLIC_MATRESHKA_API_ORIGIN` (default `http://127.0.0.1:8016`) and `MATRESHKA_WINDOWS_DOWNLOAD_URL`; when the download URL is unset the control stays visible and does not navigate.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation

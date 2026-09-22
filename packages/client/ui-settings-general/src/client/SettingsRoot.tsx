@@ -161,6 +161,11 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
     if (wasOpen.current && !open) triggerButton.current?.focus()
     wasOpen.current = open
   }, [open])
+  useEffect(() => {
+    const openFromProfile = (): void => { setOpen(true) }
+    window.addEventListener('matreshka:open-settings', openFromProfile)
+    return () => { window.removeEventListener('matreshka:open-settings', openFromProfile) }
+  }, [])
   const openSection = useCallback((id: string) => {
     setActiveId(id)
     setOpen(true)
@@ -240,7 +245,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
 
   return (
     <>
-      <div className={clsx(css.triggerRow, !wide && css.railRow)}>
+      <div className={clsx(css.triggerRow, !wide && css.railRow)} data-settings-trigger>
         <button
           ref={triggerButton}
           type="button"

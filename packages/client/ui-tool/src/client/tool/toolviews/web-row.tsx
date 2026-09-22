@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { IconBrowseOutline16, IconGlobeOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
-import { trackMatreshkaAnalytics } from '@deepseek-ai/dsh-client-ui-settings-models/src/client/track.ts'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ToolCallViewProps } from '../../contract/slots.ts'
 import { webCardModel } from '../models/web-card-model.ts'
@@ -10,6 +9,18 @@ import { ToolRow } from '../components/ToolRow.tsx'
 import { CONVERSATION_NS as NS } from '../../locale.ts'
 
 type WebRowProps = ToolCallViewProps & PropsLocale<'conversation'>
+
+function trackMatreshkaAnalytics(name: string): void {
+  try {
+    const track = (globalThis as typeof globalThis & {
+      dshDesktop?: { analytics?: { track?: (n: string) => unknown } }
+    }).dshDesktop?.analytics?.track
+    if (typeof track !== 'function') return
+    void track(name)
+  } catch {
+    // Missing or throwing Desktop bridge must not break chrome.
+  }
+}
 
 const WEB_TITLE_KEYS = {
   web_search: 'tool.title.webSearch',

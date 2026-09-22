@@ -35,6 +35,18 @@ export interface MessageImageLabels {
   loadFailed: string
   /** Lightbox strings forwarded to the opened preview. */
   lightbox: ImageLightboxLabels
+  /** Download control. */
+  download: string
+  /** Copy control. */
+  copy: string
+  /** Share control. */
+  share: string
+  /** Previous image in a batch. */
+  prev: string
+  /** Next image in a batch. */
+  next: string
+  /** Batch position, 1-based. */
+  position: (current: number, total: number) => string
 }
 
 /** Display box for a lone image (DeepSeek Chat rule): long edge 240px with
@@ -127,10 +139,16 @@ export function MessageImage({ image, load, variant, labels }: {
         style={fit === undefined ? undefined : { width: fit.width, height: fit.height }}
         title={labels.open}
         aria-label={labels.openNamed(label)}
+        aria-busy={src === null}
         onClick={() => { if (src !== null) setOpen(true) }}
       >
         {src === null
-          ? <span className={css.loading}>{labels.loading}</span>
+          ? (
+            <>
+              <span className={css.skeleton} data-testid="image-skeleton" aria-hidden="true" />
+              <span className={css.loading}>{labels.loading}</span>
+            </>
+          )
           : <img src={src} alt={label} style={fit === undefined ? undefined : { objectPosition: fit.objectPosition }} />}
       </button>
       {open && src !== null && <ImageLightbox src={src} alt={label} labels={labels.lightbox} onClose={close} />}
@@ -147,19 +165,44 @@ export function ImageGallery({ images, load, align, compact = false, labels }: {
   compact?: boolean
   labels: MessageImageLabels
 }) {
+  const [index, setIndex] = useState(0)
   if (images.length === 0) return null
-  const variant = compact || images.length > 1 ? 'tile' : 'single'
+  if (compact || images.length === 1) {
+    const variant = compact ? 'tile' : 'single'
+    return (
+      <div className={css.gallery} data-align={align}>
+        {images.map((image, imageIndex) => (
+          <MessageImage
+            key={`${'attachment' in image ? image.attachment.attachmentId : image.preview.url}:${imageIndex}`}
+            image={image}
+            load={load}
+            variant={variant}
+            labels={labels}
+          />
+        ))}
+      </div>
+    )
+  }
+  const current = Math.min(index, images.length - 1)
+  const image = images[current]
+  if (image === undefined) return null
   return (
-    <div className={css.gallery} data-align={align}>
-      {images.map((image, index) => (
-        <MessageImage
-          key={`${'attachment' in image ? image.attachment.attachmentId : image.preview.url}:${index}`}
-          image={image}
-          load={load}
-          variant={variant}
-          labels={labels}
-        />
-      ))}
+    <div className={css.carousel} data-align={align} data-testid="image-batch">
+      <MessageImage image={image} load={load} variant="single" labels={labels} />
+      <div className={css.nav}>
+        <button type="button" disabled={current === 0} aria-label={labels.prev} onClick={() => { setIndex(current - 1) }}>
+          {labels.prev}
+        </button>
+        <span>{labels.position(current + 1, images.length)}</span>
+        <button
+          type="button"
+          disabled={current >= images.length - 1}
+          aria-label={labels.next}
+          onClick={() => { setIndex(current + 1) }}
+        >
+          {labels.next}
+        </button>
+      </div>
     </div>
   )
 }

@@ -55,6 +55,8 @@ const TOOL_VARIANTS: Record<string, ToolRowVariant> = {
   // Left unclassified it falls to `others`, which titles the row generically and
   // derives no filePath — so the path the row advertises as openable never is.
   read_image: 'read',
+  generate_image: 'others',
+  edit_image: 'edit',
   web_fetch: 'read',
   web_search: 'search',
   grep: 'search',
@@ -82,6 +84,8 @@ const TOOL_TITLE_KEYS: Record<string, ToolTitleKey> = {
   cordis_undefine: 'tool.title.removeCordis',
   pwsh: 'tool.title.pwsh',
   read_image: 'tool.title.readImage',
+  generate_image: 'tool.title.generateImage',
+  edit_image: 'tool.title.editImage',
 }
 
 /**

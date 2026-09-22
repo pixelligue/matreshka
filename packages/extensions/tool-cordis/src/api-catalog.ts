@@ -1560,6 +1560,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the durable attachment reference and base64-encoded bytes.',
       },
       {
+        signature: '@Remote(\'audio\') audio(request: SessionAttachmentRequest): Promise<SessionAudioValue>',
+        description: 'Read one playable audio file proven reachable from the addressed Session log.',
+        parameters: [{ name: 'request', description: 'Session and attachment identities used for authorization.' }],
+        returns: 'the durable file reference, audio media type, and base64-encoded bytes.',
+      },
+      {
         signature: '@Remote(\'updateQueue\') updateQueue(request: SessionUpdateQueueRequest): SessionUpdateQueueValue',
         description: 'Mutate one still-pending queue occurrence on a live Agent.',
         parameters: [{ name: 'request', description: 'Session, queue item, and requested mutation.' }],
@@ -5241,6 +5247,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SessionAttachmentValue',
     declaration: 'export interface SessionAttachmentValue {\n    readonly attachment: ImageAttachmentRef;\n    readonly data: string;\n}',
+  },
+  {
+    name: 'SessionAudioValue',
+    declaration: 'export interface SessionAudioValue {\n    readonly attachment: FileAttachmentRef;\n    readonly mediaType: string;\n    readonly data: string;\n}',
   },
   {
     name: 'SessionAvailability',

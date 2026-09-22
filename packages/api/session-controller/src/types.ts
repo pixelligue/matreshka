@@ -1,7 +1,7 @@
 /** Browser-safe request, result, and lifecycle vocabulary for the Session Remote service. */
 
 import type {
-  AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
+  AttachmentIdType, FileAttachmentRef, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
 } from '@deepseek-ai/dsh-attachment'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { LlmAttemptId, MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -333,6 +333,13 @@ export interface SessionAttachmentRequest {
 /** Durable image read response value. */
 export interface SessionAttachmentValue {
   readonly attachment: ImageAttachmentRef
+  readonly data: string
+}
+
+/** Playable audio read response value. `data` is canonical base64 of the stored bytes. */
+export interface SessionAudioValue {
+  readonly attachment: FileAttachmentRef
+  readonly mediaType: string
   readonly data: string
 }
 

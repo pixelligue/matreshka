@@ -7,7 +7,7 @@
 
 import { EventEmitter } from 'node:events'
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
@@ -112,6 +112,12 @@ interface BashContribution {
 }
 
 describe('web-app runtime glue', () => {
+  it('omits DeepSeek Harness identity from the Matreshka web composition', () => {
+    const patch = readFileSync(join(import.meta.dirname, '../cordis.patch.yml'), 'utf8')
+    expect(patch).toMatch(/includeHarnessIdentity:\s*false/)
+    expect(patch).not.toContain('DeepSeek Harness')
+  })
+
   it('mounts dist serving, prompt section, bash variables, and publishes the URL with the LAN snapshot', async () => {
     stageDist()
     const ctx = new Context()
@@ -154,14 +160,20 @@ describe('web-app runtime glue', () => {
       'open:http://127.0.0.1:4567/?token=test-token',
     ])
     const assembly = await ctx.systemPrompt.assemble()
-    expect(assembly.sections.find(entry => entry.name === 'harness:source')?.text).toContain('DeepSeek Harness implementation checkout')
+    const source = assembly.sections.find(entry => entry.name === 'harness:source')?.text
+    expect(source).toContain('Matreshka implementation checkout')
+    expect(source).not.toMatch(/DeepSeek/)
     const section = assembly.sections.find(entry => entry.name === 'app:web-surface')
     expect(section?.text).toContain('http://127.0.0.1:4567')
+    expect(section?.text).toContain('Matreshka')
+    expect(section?.text).not.toMatch(/DeepSeek/)
     // The single update contract: the receiver is always on; no-refresh
     // reloads additionally need the rebuild watcher.
     expect(section?.text).toContain('pnpm run dev:web')
     const webRuntime = contributions.find(contribution => contribution.name === 'web-runtime')
     expect(webRuntime?.resolve()).toEqual({ DSH_WEB_URL: 'http://127.0.0.1:4567' })
+    expect(webRuntime?.variables.DSH_WEB_URL?.description).toContain('Matreshka')
+    expect(webRuntime?.variables.DSH_WEB_URL?.description).not.toMatch(/DeepSeek/)
     await ctx.fiber.dispose()
   })
 

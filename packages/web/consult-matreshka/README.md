@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-With `dsh-consult-matreshka`, Matrena can call `consult` (DeepSeek V4.1 Flash via the product API) and `select_tool` (Jev via the product API). The Host sends only the session bearer. OpenRouter keys stay on the backend. Chat completions still use `matrena`.
+With `dsh-consult-matreshka`, Matrena can call `consult` (DeepSeek V4.1 Flash via the product API) and `select_tool` (Jev via the product API). On the first step of a user turn, Host asks Jev `skip`, `proceed`, or `consult` and calls Flash only when Jev chooses `consult`. The Host sends only the session bearer. OpenRouter keys stay on the backend. Chat completions still use `matrena`.
 
 ## Table of Contents
 
@@ -23,7 +23,7 @@ With `dsh-consult-matreshka`, Matrena can call `consult` (DeepSeek V4.1 Flash vi
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount next to the Matreshka API origin used for chat. Consult needs a signed-in session. Skip both tools on greetings.
+Mount next to the Matreshka API origin used for chat. Consult needs a signed-in session. Jev sends simple tasks through `proceed` and calls Flash only for hard or risky requests.
 
 ```yaml
 - id: consult-matreshka
@@ -35,7 +35,7 @@ Mount next to the Matreshka API origin used for chat. Consult needs a signed-in 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-`consult` posts `{goal, question, plan?, evidence?}` to `{apiOrigin}/v1/consult`. `select_tool` posts `{goal, candidates}` to `{apiOrigin}/v1/tools/select`. Empty session tokens fail locally and do not fetch.
+`consult` posts `{goal, question, plan?, evidence?}` to `{apiOrigin}/v1/consult`. `select_tool` posts `{goal, candidates}` to `{apiOrigin}/v1/tools/select`. Empty session tokens fail locally and do not fetch. The first step of a turn also posts `skip`/`proceed`/`consult` to `/v1/tools/select`; only `consult` calls `/v1/consult` and appends a logged `[advisor …]` notice. Errors leave the turn unchanged.
 
 ### Tool interface
 

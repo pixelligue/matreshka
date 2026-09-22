@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
     llm_upstream_base_url: str
+    llm_upstream_api_key: str | None = None
     llmtokenapi_api_key: str
     session_ttl_seconds: int = Field(default=60 * 60 * 24 * 7, gt=0)
     update_artifact_root: str | None = None
@@ -51,6 +52,7 @@ class Settings(BaseSettings):
         return value
 
     @field_validator(
+        "llm_upstream_api_key",
         "update_artifact_root",
         "openrouter_api_key",
         "matreshka_aptabase_usage_app_key",

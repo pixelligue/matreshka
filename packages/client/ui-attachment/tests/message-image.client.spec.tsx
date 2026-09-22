@@ -22,7 +22,13 @@ const labels: MessageImageLabels = {
   openNamed: label => `${label}，点击查看原图`,
   loading: '图片加载中…',
   loadFailed: '图片加载失败，点击重试',
-  lightbox: { dialog: '原图预览', close: '关闭原图预览' },
+  lightbox: { dialog: '原图预览', close: '关闭原图预览', download: '下载', copy: '复制', share: '分享' },
+  download: '下载',
+  copy: '复制',
+  share: '分享',
+  prev: '上一张',
+  next: '下一张',
+  position: (current, total) => `${current} / ${total}`,
 }
 
 const attachment = {
@@ -81,7 +87,9 @@ describe('MessageImage', () => {
     const load = vi.fn(() => new Promise<string>(() => {}))
     const view = render(<MessageImage image={{ attachment }} load={load} variant="single" labels={labels} />)
     const frame = view.getByRole('button', { name: 'history.png，点击查看原图' })
+    expect(view.getByTestId('image-skeleton')).toBeTruthy()
     expect(view.getByText('图片加载中…')).toBeTruthy()
+    expect(frame.getAttribute('aria-busy')).toBe('true')
     fireEvent.click(frame)
     expect(view.queryByRole('dialog')).toBeNull()
   })
@@ -220,7 +228,9 @@ describe('ImageGallery', () => {
       />,
     )
     expect(view.container.querySelector('[data-align="end"]')).not.toBeNull()
-    await waitFor(() => { expect(view.getAllByAltText('history.png')).toHaveLength(2) })
+    await waitFor(() => { expect(view.getByAltText('history.png')).toBeTruthy() })
+    expect(view.getByText('1 / 3')).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: '下一张' }))
     expect(view.getByAltText('echo.png')).toBeTruthy()
   })
 
@@ -237,7 +247,10 @@ describe('ImageGallery', () => {
     const several = render(
       <ImageGallery images={[{ attachment }, { attachment }, { attachment }]} load={load} align="end" labels={labels} />,
     )
-    expect(several.container.querySelectorAll('[data-variant="tile"]')).toHaveLength(3)
+    expect(several.getByTestId('image-batch')).toBeTruthy()
+    expect(several.getByText('1 / 3')).toBeTruthy()
+    fireEvent.click(several.getByRole('button', { name: '下一张' }))
+    expect(several.getByText('2 / 3')).toBeTruthy()
   })
 
   it('renders the conversation slot entry with translated labels', async () => {
@@ -249,10 +262,19 @@ describe('ImageGallery', () => {
         'image.loadFailed': '图片加载失败，点击重试',
         'image.preview': '原图预览',
         'image.closePreview': '关闭原图预览',
+        'image.download': '下载',
+        'image.copy': '复制',
+        'image.share': '分享',
+        'image.prev': '上一张',
+        'image.next': '下一张',
+        'image.position': '{current} / {total}',
       }
       if (key === 'image.openOriginalLabel') {
         const label = params?.label
         return `${typeof label === 'string' ? label : ''}，点击查看原图`
+      }
+      if (key === 'image.position') {
+        return `${String(params?.current ?? '')} / ${String(params?.total ?? '')}`
       }
       return translated[key] ?? key
     }) as MessageImagesProps['t']

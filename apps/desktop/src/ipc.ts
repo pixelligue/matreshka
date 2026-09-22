@@ -22,6 +22,14 @@ export const DESKTOP_IPC = {
   updatesInstall: 'dsh-desktop:updates-install',
   updatesState: 'dsh-desktop:updates-state',
   analyticsTrack: 'dsh-desktop:analytics-track',
+  authOpenLogin: 'dsh-desktop:auth-open-login',
+  authLocalLogin: 'dsh-desktop:auth-local-login',
+  authCode: 'dsh-desktop:auth-code',
+  mcpList: 'dsh-desktop:mcp-list',
+  mcpSave: 'dsh-desktop:mcp-save',
+  skillsList: 'dsh-desktop:skills-list',
+  skillsSave: 'dsh-desktop:skills-save',
+  githubImport: 'dsh-desktop:github-import',
 } as const
 
 /** Desktop release update state rendered by desktop-owned UI. */
@@ -60,10 +68,48 @@ export interface DshDesktopAnalyticsApi {
   track(name: string, props?: Record<string, string | number>): void
 }
 
+/** Website sign-in bridge on application documents. */
+export interface DshDesktopAuthApi {
+  localLogin(): Promise<boolean>
+  openWebsiteLogin(): Promise<void>
+  subscribeAuthCode(listener: (code: string) => void): () => void
+}
+
+/** One custom MCP server saved by the application document. */
+export interface DesktopMcpServer {
+  serverName: string
+  transport: 'stdio' | 'streamable-http'
+  command?: string
+  args?: string[]
+  url?: string
+  env?: Record<string, string>
+  headers?: Record<string, string>
+}
+
+/** One operator skill saved by the application document. */
+export interface DesktopSkill {
+  name: string
+  description: string
+  body: string
+  invocation: 'always' | 'manual'
+  enabled: boolean
+  projectPath?: string
+}
+
 /** Application-document bridge: protocol marker plus analytics, no plugin or update APIs. */
 export interface DshDesktopApplicationApi {
   readonly protocolVersion: 1
   readonly analytics: DshDesktopAnalyticsApi
+  readonly auth: DshDesktopAuthApi
+  readonly mcp: {
+    list(): Promise<DesktopMcpServer[]>
+    save(servers: DesktopMcpServer[]): Promise<void>
+  }
+  readonly skills: {
+    list(): Promise<DesktopSkill[]>
+    save(skills: DesktopSkill[]): Promise<void>
+  }
+  importGithub(url: string, kind: 'skill' | 'mcp'): Promise<string>
 }
 
 /** Startup-page controls, unavailable to backend-provided application documents. */

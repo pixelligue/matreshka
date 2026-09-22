@@ -27,7 +27,7 @@ kind: "bundle"
 pnpm run dev:landing
 ```
 
-应用监听 `http://127.0.0.1:3020`。俄语是 `/`。英语是 `/en`。把 `MATRESHKA_WINDOWS_DOWNLOAD_URL` 设为 Windows 安装包 URL；未设置时下载控件仍可见，但不会跳转。
+应用监听 `http://127.0.0.1:3020`。俄语是 `/`。英语是 `/en`。登录是 `/login`（`/en/login`）；注册是 `/register`（`/en/register`）。设置 `NEXT_PUBLIC_MATRESHKA_API_ORIGIN`（默认 `http://127.0.0.1:8016`）和 `MATRESHKA_WINDOWS_DOWNLOAD_URL`；未设置下载 URL 时控件仍可见，但不会跳转。
 
 <a id="understand-the-implementation"></a>
 ## 理解实现

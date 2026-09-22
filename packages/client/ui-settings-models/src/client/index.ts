@@ -24,7 +24,6 @@ import type { MatreshkaSignInInjected } from './MatreshkaSignInDialog.tsx'
 import { SignOutRow } from './SignOutRow.tsx'
 import type { SignOutInjected } from './SignOutRow.tsx'
 import { ProfileFooter } from './ProfileFooter.tsx'
-import { SignOutFoot } from './SignOutFoot.tsx'
 import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
 import { decodeWelcomeSection, WelcomeNoticeStore } from './welcome-store.ts'
@@ -180,11 +179,4 @@ export function apply(ctx: ClientContext, config: Config = {}): void {
     locale: NS,
     inject: signOutInjected,
   }, ProfileFooter))
-  ctx.slots.inject('sidebar.footer.end', () => ctx.slots.register({
-    name: 'sidebar.footer.end',
-    id: 'matreshka-sign-out-foot',
-    order: 0,
-    locale: NS,
-    inject: signOutInjected,
-  }, SignOutFoot))
 }

@@ -105,10 +105,13 @@ describe('matreshka plugins tab', () => {
     const catalog = await view.findByTestId('plugins-catalog')
     expect(view.queryByText('Conversation content')).toBeNull()
     expect(within(catalog).getByRole('heading', { name: 'Plugins' })).toBeTruthy()
-    expect(view.getByTestId('plugin-card-amocrm')).toBeTruthy()
-    expect(view.getByTestId('plugin-card-bitrix24')).toBeTruthy()
-    expect(view.getByTestId('plugin-card-tilda')).toBeTruthy()
-    expect(view.getByTestId('plugin-card-hotels')).toBeTruthy()
+    expect(view.queryByTestId('plugin-card-amocrm')).toBeNull()
+    expect(within(catalog).getByText('No integrations yet.')).toBeTruthy()
+    fireEvent.click(within(catalog).getByRole('button', { name: 'Add an integration' }))
+    expect(view.getByTestId('plugin-logo-amocrm')).toBeTruthy()
+    expect(view.getByTestId('plugin-logo-bitrix24')).toBeTruthy()
+    expect(view.getByTestId('plugin-logo-tilda')).toBeTruthy()
+    expect(view.getByTestId('plugin-logo-hotels')).toBeTruthy()
     expect(within(catalog).getByText('Amadeus')).toBeTruthy()
     expect(view.queryByText(/CIS|СНГ|OpenStreetMap/)).toBeNull()
     expect(view.getByTestId('plugin-logo-amocrm').getAttribute('src')).toBe('/plugin-marks/amocrm.png')
@@ -120,14 +123,78 @@ describe('matreshka plugins tab', () => {
     expect(view.queryByText('Word')).toBeNull()
     expect(view.queryByText('Excel')).toBeNull()
     expect(view.queryByText('PDF')).toBeNull()
-    expect(within(view.getByTestId('plugin-card-amocrm')).getByRole('button', { name: 'Connect' })).toBeTruthy()
-    expect(within(view.getByTestId('plugin-card-hotels')).queryByRole('button', { name: 'Connect' })).toBeNull()
+    expect(within(catalog).queryByRole('button', { name: 'Connect' })).toBeNull()
 
     fireEvent.click(newSession)
     expect(startSession).toHaveBeenCalled()
     act(() => { layout.selectPanel(null) })
     expect(view.getByText('Conversation content')).toBeTruthy()
     expect(view.queryByTestId('plugins-catalog')).toBeNull()
+  })
+
+  it('keeps add forms closed until plus, then lists a saved MCP server', async () => {
+    const saveSkills = vi.fn(async () => {})
+    const saveMcp = vi.fn(async () => {})
+    vi.stubGlobal('dshDesktop', {
+      skills: { list: async () => [], save: saveSkills },
+      mcp: { list: async () => [], save: saveMcp },
+      importGithub: async () => '',
+    })
+    const { view } = await bench()
+    fireEvent.click(await view.findByRole('button', { name: 'Plugins' }))
+    const catalog = await view.findByTestId('plugins-catalog')
+    expect(view.queryByTestId('plugin-card-amocrm')).toBeNull()
+    expect(within(catalog).getByRole('tab', { name: 'Integrations' }).getAttribute('aria-selected')).toBe('true')
+    expect(within(catalog).getByRole('tab', { name: 'Skills' })).toBeTruthy()
+    expect(within(catalog).getByRole('tab', { name: 'MCP servers' })).toBeTruthy()
+    expect(view.queryByLabelText('Paste an MCP config')).toBeNull()
+    expect(view.queryByLabelText('Name (kebab-case)')).toBeNull()
+    expect(within(catalog).queryByRole('menuitem', { name: 'Add a marketplace' })).toBeNull()
+
+    fireEvent.click(within(catalog).getByRole('tab', { name: 'Skills' }))
+    expect(within(view.getByTestId('skills-pane')).getByText('No custom skills yet.')).toBeTruthy()
+    fireEvent.click(within(catalog).getByRole('button', { name: 'Add a skill' }))
+    fireEvent.change(view.getByLabelText('Name (kebab-case)'), { target: { value: 'demo-skill' } })
+    fireEvent.change(view.getByLabelText('Description'), { target: { value: 'Demo skill' } })
+    fireEvent.change(view.getByLabelText('Markdown body'), { target: { value: 'Do the thing.' } })
+    fireEvent.click(view.getByRole('button', { name: 'Save skills' }))
+    expect(await view.findByText('Saved. A new session sees enabled skills.')).toBeTruthy()
+    expect(within(view.getByTestId('skills-pane')).getByText('demo-skill')).toBeTruthy()
+    expect(view.queryByLabelText('Name (kebab-case)')).toBeNull()
+    expect(saveSkills).toHaveBeenCalledWith([
+      { name: 'demo-skill', description: 'Demo skill', body: 'Do the thing.', invocation: 'always', enabled: true },
+    ])
+
+    fireEvent.click(within(catalog).getByRole('tab', { name: 'MCP servers' }))
+    expect(within(view.getByTestId('mcp-servers')).getByText('No custom servers yet.')).toBeTruthy()
+    fireEvent.click(within(catalog).getByRole('button', { name: 'Add an MCP server' }))
+    const paste = JSON.stringify({
+      mcpServers: {
+        github: {
+          command: 'npx',
+          args: ['-y', '@modelcontextprotocol/server-github'],
+          env: { GITHUB_PERSONAL_ACCESS_TOKEN: '' },
+        },
+      },
+    })
+    fireEvent.change(view.getByLabelText('Paste an MCP config'), { target: { value: paste } })
+    expect(await view.findByText('Servers detected. Fill any empty keys, then save.')).toBeTruthy()
+    fireEvent.change(view.getByLabelText(/GITHUB_PERSONAL_ACCESS_TOKEN/u), { target: { value: 'ghp_test' } })
+    fireEvent.click(view.getByRole('button', { name: 'Save MCP' }))
+    expect(await view.findByText('Saved. Restart the app to connect.')).toBeTruthy()
+    const mcp = view.getByTestId('mcp-servers')
+    expect(within(mcp).getByText('github')).toBeTruthy()
+    expect(within(mcp).getByText('npx')).toBeTruthy()
+    expect(view.queryByLabelText('Paste an MCP config')).toBeNull()
+    expect(saveMcp).toHaveBeenCalledWith([{
+      serverName: 'github',
+      transport: 'stdio',
+      command: 'npx',
+      args: ['-y', '@modelcontextprotocol/server-github'],
+      env: { GITHUB_PERSONAL_ACCESS_TOKEN: 'ghp_test' },
+    }])
+    fireEvent.click(within(catalog).getByRole('tab', { name: 'Integrations' }))
+    expect(view.queryByTestId('plugin-card-amocrm')).toBeNull()
   })
 
   it('keeps the Plugins icon in the collapsed rail', async () => {

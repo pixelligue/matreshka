@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Attach images and generic files to prompts and commands, then reuse them after restarting the same session, without extra setup in the shipped `dsh` composition. Images are validated and normalized before the message is accepted; PNG, JPEG, WebP, and GIF are supported within deployment limits. Other files are stored byte-for-byte without format or size limits, and models read them on demand through saved read-only paths instead of receiving their bytes. Durable session events exclude browser paths, provider URLs, local storage paths, and base64. Stored attachments are never deleted automatically; audio and video have no dedicated handling.
+Attach images and generic files to prompts and commands, then reuse them after restarting the same session, without extra setup in the shipped `dsh` composition. Images are validated and normalized before the message is accepted; PNG, JPEG, WebP, and GIF are supported within deployment limits. Other files are stored byte-for-byte without format or size limits, and models read them on demand through saved read-only paths instead of receiving their bytes. Durable session events exclude browser paths, provider URLs, local storage paths, and base64. Stored attachments are never deleted automatically. The chat can play mp3, wav, ogg, oga, m4a, aac, and webm through a session-authorized read; video still has no player, and models still receive only a saved path.
 
 ## Table of Contents
 
@@ -116,7 +116,7 @@ Adding an image changes the provider request and therefore invalidates the affec
 
 These limits describe what attachments can and cannot do; they are current package constraints, not a task backlog.
 
-- **Raster image limits apply to images only** — PNG, JPEG, WebP, and GIF are accepted as images under deployment limits; every other file is stored verbatim with no type or size limit, and audio and video have no dedicated handling yet.
+- **Raster image limits apply to images only** — PNG, JPEG, WebP, and GIF are accepted as images under deployment limits; every other file is stored verbatim with no type or size limit. Playable audio is served back for the chat player; video still has no player.
 - **Attachments are never deleted** — stored images and files are retained indefinitely; nothing removes them automatically.
 - **Unsent drafts are not saved** — a composer draft stays in the browser until you submit the message.
 
@@ -134,6 +134,6 @@ Resumed and forked sessions may share immutable objects, so any retention policy
 
 #### Future: audio, video, and assistant-side output
 
-Audio and video would need dedicated lifecycle and provider contracts beyond the verbatim file path, and the role-neutral `ImageBlock` leaves assistant-side image output as forward compatibility — current production adapters declare text-only output, so only user content carries images. Both directions are undecided.
+The chat player reads playable audio through `session/audio`. Video and model-decoded audio still need a provider contract beyond the verbatim path. The role-neutral `ImageBlock` leaves assistant-side image output as forward compatibility — current production adapters declare text-only output, so only user content carries images.
 
 </details>

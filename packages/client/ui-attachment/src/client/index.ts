@@ -2,6 +2,7 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
@@ -25,8 +26,6 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.trajectory.images',
     locale: 'conversation',
   }, MessageImages))
-  // The tool image gallery reuses the message gallery renderer: its owner
-  // carries the same images/loadImage/align share the message arm does.
   ctx.slots.inject('tool.call.images', () => ctx.slots.register({
     name: 'tool.call.images',
     locale: 'conversation',

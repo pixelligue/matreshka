@@ -34,6 +34,7 @@ import type {
   ModelCatalog,
   SessionAttachmentRequest,
   SessionAttachmentValue,
+  SessionAudioValue,
   SessionCancelRequest,
   SessionCancelValue,
   SessionControlFrame,
@@ -73,6 +74,7 @@ export interface TestSessionRemote {
   fork(request: SessionForkRequest): Promise<RemoteResult<SessionForkValue>>
   prompt(request: SessionPromptRequest, signal?: AbortSignal): Promise<RemoteResult<SessionPromptValue>>
   attachment(request: SessionAttachmentRequest): Promise<RemoteResult<SessionAttachmentValue>>
+  audio(request: SessionAttachmentRequest): Promise<RemoteResult<SessionAudioValue>>
   updateQueue(request: SessionUpdateQueueRequest): Promise<RemoteResult<SessionUpdateQueueValue>>
   cancel(request: SessionCancelRequest): Promise<RemoteResult<SessionCancelValue>>
   openWorkspacePath(
@@ -350,6 +352,7 @@ export function createSessionTestRemote(
       signal,
     ),
     attachment: request => remoteResult(() => direct.attachment(request)),
+    audio: request => remoteResult(() => direct.audio(request)),
     updateQueue: request => remoteResult(() => direct.updateQueue(request)),
     cancel: request => remoteResult(() => direct.cancel(request)),
     openWorkspacePath: (request, signal = new AbortController().signal) => remoteResult(

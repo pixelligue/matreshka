@@ -15,8 +15,11 @@ from matreshka_api.auth import router as auth_router
 from matreshka_api.chat import router as chat_router
 from matreshka_api.updates import router as updates_router
 from matreshka_api.consult import router as consult_router
+from matreshka_api.images import router as images_router
+from matreshka_api.transcription import router as transcription_router
 from matreshka_api.costs import router as costs_router
 from matreshka_api.plugins import router as plugins_router
+from matreshka_api.skill_plan import router as skill_plan_router
 from matreshka_api.tool_select import router as tool_select_router
 from matreshka_api.usage import router as usage_router
 from matreshka_api.usage_analytics import UsageAnalytics
@@ -101,7 +104,10 @@ def create_app(
     application.include_router(updates_router)
     application.include_router(web_search_router)
     application.include_router(consult_router)
+    application.include_router(images_router)
+    application.include_router(transcription_router)
     application.include_router(tool_select_router)
+    application.include_router(skill_plan_router)
     application.include_router(usage_router)
     application.include_router(costs_router)
     application.include_router(plugins_router)

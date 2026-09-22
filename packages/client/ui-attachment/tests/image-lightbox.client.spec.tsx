@@ -6,7 +6,7 @@ import { ImageLightbox } from '../src/ImageLightbox.tsx'
 
 afterEach(cleanup)
 
-const labels = { dialog: '原图预览', close: '关闭原图预览' }
+const labels = { dialog: '原图预览', close: '关闭原图预览', download: '下载', copy: '复制', share: '分享' }
 
 describe('ImageLightbox', () => {
   it('focuses its close control, closes by button and Escape, and restores focus', () => {

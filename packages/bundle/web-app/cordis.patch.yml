@@ -35,6 +35,16 @@
       config:
         apiOrigin: http://127.0.0.1:8016
 
+    - id: images-matreshka
+      name: '@deepseek-ai/dsh-images-matreshka'
+      config:
+        apiOrigin: http://127.0.0.1:8016
+
+    - id: audio-matreshka
+      name: '@deepseek-ai/dsh-audio-matreshka'
+      config:
+        apiOrigin: http://127.0.0.1:8016
+
     - id: cis-plugins-matreshka
       name: '@deepseek-ai/dsh-cis-plugins-matreshka'
       config:
@@ -62,14 +72,17 @@
 
 - id: system-prompt
   config:
+    # Matreshka personaPrefix is the opener; omit the upstream harness identity.
+    includeHarnessIdentity: false
     personaSuffix: Your working directory is {{cwd}}.
     personaPrefix: >-
       You are a coding agent powered by the {{model}} model.
       When the user asks you to search the web or look something up online,
       you MUST call the web_search tool. Do not claim you will search without a tool call.
-      On hard coding, review, or analysis steps, call consult with a short goal, question, and only the relevant plan or evidence — never the full transcript.
-      When several tools could apply, call select_tool with the goal and the candidate tool names.
-      Skip consult and select_tool on greetings and trivial questions.
+      When a skill_content block is already in the conversation, follow that skill. Do not announce a consultant, an advisor, or a tool call for choosing it.
+      When the user attaches audio or asks what a recording says, call transcribe_audio with the saved read-only path. Do not use the read tool on audio files.
+      When the user wants pictures, call generate_image. For a same-style set, pass n greater than 1. To change a picture from this session, call edit_image with its attachmentId. The pictures are already shown in the chat. Do not read or open their saved files.
+      When the user asks to connect, add, or remove a custom MCP server, call connect_mcp, list_mcp, or disconnect_mcp. Do not edit config files for that. After connect_mcp succeeds, that server's tools are available on the next turn.
 
 # Full-text session search is opt-in (the base row's `openAt: never`). This
 # restatement keeps the Web values on one ephemeral in-memory index; a

@@ -151,3 +151,43 @@ def test_consult_upstream_5xx_is_502_without_key(consult_harness: ConsultHarness
     )
     assert response.status_code == 502
     assert OPENROUTER_KEY not in response.text
+
+
+def test_consult_parses_fenced_json_and_content_parts(consult_harness: ConsultHarness) -> None:
+    from matreshka_api.consult import choice_text, message_text, parse_verdict
+
+    fenced = parse_verdict('```json\n{"verdict":"revise","detail":"ask for the contact"}\n```')
+    assert fenced.verdict == "revise"
+    assert fenced.detail == "ask for the contact"
+    nested = parse_verdict(
+        '{"verdict":"risk","detail":"{\\"verdict\\":\\"revise\\",\\"detail\\":\\"need the Bitrix id\\"}"}'
+    )
+    assert nested.verdict == "revise"
+    assert nested.detail == "need the Bitrix id"
+    truncated = parse_verdict(
+        '{"verdict":"risk","detail":"{\\"verdict\\":\\"ok\\",\\"detail\\":\\"Draft the delay notice with placeholders and do not send it without user approval."'
+    )
+    assert truncated.verdict == "ok"
+    assert "Draft the delay notice" in truncated.detail
+    assert message_text([{"type": "text", "text": '{"verdict":"ok","detail":"go"}'}]) == (
+        '{"verdict":"ok","detail":"go"}'
+    )
+    assert choice_text({
+        "message": {"content": "", "reasoning": '{"verdict":"ok","detail":"from reasoning"}'},
+    }) == '{"verdict":"ok","detail":"from reasoning"}'
+
+    consult_harness.upstream_json = {
+        "choices": [{"message": {
+            "content": "",
+            "reasoning": '{"verdict":"ok","detail":"from reasoning"}',
+        }}],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 4},
+    }
+    token = _token(consult_harness)
+    response = consult_harness.client.post(
+        "/v1/consult",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"goal": "g", "question": "q"},
+    )
+    assert response.status_code == 200
+    assert response.json()["detail"] == "from reasoning"

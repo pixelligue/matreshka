@@ -1,4 +1,5 @@
 /** Chat-owned Slot declarations and composed component props. */
+import type { FileAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
 import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 import type {
@@ -91,6 +92,8 @@ export interface ChatNodeOwnerProps {
    * rendering closure.
    */
   loadImage: MessageImageLoader
+  /** Resolve one playable audio file into a browser URL. Absent, the card stays silent. */
+  loadAudio?: ((file: FileAttachmentRef) => Promise<string>) | undefined
   renderMessageImages: RenderMessageImages
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined
   /** Turn-process state when this Node belongs to a projected Turn. */
@@ -147,6 +150,8 @@ export interface ChatViewInjected {
   /** Jump loader: page history back through seq; resolves when the window covers it. */
   loadThrough: (seq: SessionSeq) => Promise<void>
   loadImage: MessageImageLoader
+  /** Resolve one playable audio file into a browser URL. */
+  loadAudio?: ((file: FileAttachmentRef) => Promise<string>) | undefined
   chatScroll: {
     save: (position: ChatScrollPosition | null) => void
     read: () => ChatScrollPosition | null

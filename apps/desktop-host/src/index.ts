@@ -22,6 +22,8 @@ import {
   PluginPackages,
   type Profile,
 } from '@deepseek-ai/dsh-app-boot'
+import { mcpClientPatches, mcpServersPath, readMcpServers } from './mcp-servers.ts'
+import { registerMcpChatTools } from './connect-mcp.ts'
 import { provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { DSH_LAUNCH_ENVIRONMENT_KEY } from '@deepseek-ai/dsh-launch-environment'
 import type {} from '@deepseek-ai/dsh-api-gateway'
@@ -175,6 +177,7 @@ function desktopComposition(
     ...profile.layers.map(layer => layer.patches),
     profile.patches,
     loadOverlayPatches('dsh desktop', DESKTOP_PATCH),
+    mcpClientPatches(readMcpServers(mcpServersPath())),
   ]
   const rows = new Map(composeEntries(layers).flatMap(row => typeof row.id === 'string' ? [[row.id, row] as const] : []))
   const agentPresets = rows.get('agent-presets')
@@ -315,6 +318,7 @@ export async function runDesktopHost(
     provideCmdline(hostCtx, { args: [], exit: () => {} })
   })
   current = ctx
+  registerMcpChatTools(ctx)
   const connection = ctx.get('connection')
   const clientModules = ctx.get('clientModules')
   const gateway = ctx.get('typertGateway')

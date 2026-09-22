@@ -28,7 +28,7 @@ cp .env.example .env
 uv sync
 ```
 
-创建操作员用户。没有 HTTP 注册接口。不传 `--password` 时可以交互输入密码，避免命令回显：
+用 CLI 创建操作员用户，或通过 `POST /v1/auth/register` 注册。不传 `--password` 时可以交互输入密码，避免命令回显：
 
 ```bash
 uv run matreshka-api create-user --email you@example.com
@@ -40,13 +40,13 @@ uv run matreshka-api create-user --email you@example.com
 uv run fastapi dev --port 8016 --host 127.0.0.1
 ```
 
-在 Windows 上，进程安装 `WindowsSelectorEventLoopPolicy`，以便异步 psycopg 连接。进程从环境变量或 `.env` 读取 `DATABASE_URL`、`REDIS_URL`、`SESSION_TTL_SECONDS`、`LLM_UPSTREAM_BASE_URL`、`LLMTOKENAPI_API_KEY`，以及可选的 `UPDATE_ARTIFACT_ROOT`、`OPENROUTER_API_KEY`、`MATRESHKA_APTABASE_USAGE_APP_KEY` 和 `MATRESHKA_APTABASE_HOST`。缺少必填变量时，进程以非零状态退出并指出变量名。`SESSION_TTL_SECONDS` 必须是正整数。不要提交 API 或 Aptabase 密钥。聊天补全通过 LLMTOKENAPI（`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`）代理，对外使用 `matrena`，上游模型 ID 为 `deepseek-ai-deepseek-v4-flash-0731`。`UPDATE_ARTIFACT_ROOT` 可以为空；进程仍会启动，此时 `GET /v1/updates/desktop/{target}/{name}` 返回 404。`OPENROUTER_API_KEY` 可以为空；进程仍会启动，此时 consult/select 返回 503。
+在 Windows 上，进程安装 `WindowsSelectorEventLoopPolicy`，以便异步 psycopg 连接。进程从环境变量或 `.env` 读取 `DATABASE_URL`、`REDIS_URL`、`SESSION_TTL_SECONDS`、`LLM_UPSTREAM_BASE_URL`、可选的 `LLM_UPSTREAM_API_KEY`、`LLMTOKENAPI_API_KEY`，以及可选的 `UPDATE_ARTIFACT_ROOT`、`OPENROUTER_API_KEY`、`MATRESHKA_APTABASE_USAGE_APP_KEY` 和 `MATRESHKA_APTABASE_HOST`。缺少必填变量时，进程以非零状态退出并指出变量名。`SESSION_TTL_SECONDS` 必须是正整数。不要提交 API 或 Aptabase 密钥。聊天补全通过 Gonka（`POST {LLM_UPSTREAM_BASE_URL}/chat/completions`）代理，使用 `LLM_UPSTREAM_API_KEY`。对外 id `matrena` 先尝试 `zai-org/GLM-5.3-Flash`，除非第一次响应是 HTTP 401 或 403，否则再试 `deepseek-ai/DeepSeek-V4-Flash-0731`。若 Gonka 仍失败且设置了 `OPENROUTER_API_KEY`，同一请求再试 OpenRouter `z-ai/glm-5.3-flash`。两个密钥都为空时返回 503。`UPDATE_ARTIFACT_ROOT` 可以为空；进程仍会启动，此时 `GET /v1/updates/desktop/{target}/{name}` 返回 404。`OPENROUTER_API_KEY` 可以为空；进程仍会启动，此时 consult/select 返回 503。
 
 未认证的就绪检查：Postgres 和 Redis 均可响应时，`GET /health` 返回 200，否则返回 503。数据服务不可用也不会阻止 HTTP 进程启动。
 
 已认证的 Web 搜索：`POST /v1/web/search` 接受 `{ "query": "...", "provider": "keenable" | "llmtokenapi" }`。默认的 `keenable` 调用 Keenable 公共搜索接口（`X-Keenable-Title: Matreshka`）。`llmtokenapi` 使用 `LLMTOKENAPI_API_KEY` 调用 LLMTOKENAPI `POST /v1/search`。响应中不会出现密钥。
 
-已认证的咨询：`POST /v1/consult` 接受 `{ "goal", "question", "plan"?, "evidence"? }`（UTF-8 上限 32,000 字节），调用 OpenRouter `deepseek/deepseek-v4.1-flash`，返回 `{ "verdict": "ok"|"revise"|"risk", "detail" }`。已认证的工具选择：`POST /v1/tools/select` 接受 `{ "goal", "candidates" }`（UTF-8 上限 16,000 字节），调用 OpenRouter Decisions `typesafe/jev-1.13`，返回 `{ "tool", "confidence" }`。响应中不会出现 OpenRouter 密钥。
+已认证的咨询：`POST /v1/consult` 接受 `{ "goal", "question", "plan"?, "evidence"? }`（UTF-8 上限 32,000 字节），调用 OpenRouter `deepseek/deepseek-v4.1-flash`，返回 `{ "verdict": "ok"|"revise"|"risk", "detail" }`。已认证的工具选择：`POST /v1/tools/select` 接受 `{ "goal", "candidates" }`（UTF-8 上限 16,000 字节），调用 OpenRouter Decisions `typesafe/jev-1.13`，返回 `{ "tool", "confidence" }`。已认证的技能选择：`GET /v1/skills` 列出保存在 API 上的已发布技术栈技能，`POST /v1/skills/plan` 接受 `{ "request", "files"? }`，由 Jev 选择 `none` 或其中一项并返回其 `SKILL.md`。Host 会安装该文件供之后的回合使用，且不显示顾问工具。响应中不会出现 OpenRouter 密钥。
 
 ## 用量记录
 

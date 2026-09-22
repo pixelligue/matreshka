@@ -70,11 +70,16 @@ describe('SignOutRow', () => {
     expect(track.mock.calls.every(call => call[1] === undefined)).toBe(true)
   })
 
-  it('renders the signed-in email without a sign-out control on the profile row', () => {
+  it('opens the account menu from the profile row', () => {
     writeSession('sess-1', 'op@localhost')
     render(<ProfileFooter {...{ ...props(), wide: true }} />)
     expect(screen.getByText('op@localhost')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: en.signOut })).toBeNull()
+    expect(screen.queryByRole('menuitem', { name: en.signOut })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en.profileMenu }))
+    expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([
+      en.profileSettings,
+      en.signOut,
+    ])
   })
 
   it('updates the profile email when a session is written after mount', async () => {

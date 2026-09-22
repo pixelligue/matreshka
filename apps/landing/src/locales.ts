@@ -53,6 +53,23 @@ export interface LandingCopy {
   emptyNote: string
   footnote: string
   backHome: string
+  navSignIn: string
+  authLoginTitle: string
+  authRegisterTitle: string
+  authEmail: string
+  authPassword: string
+  authSubmitLogin: string
+  authSubmitRegister: string
+  authSubmitting: string
+  authInvalid: string
+  authNetwork: string
+  authExists: string
+  authSwitchToRegister: string
+  authSwitchToLogin: string
+  authHandoff: string
+  authSignedIn: string
+  authSignOut: string
+  authOpenDesktop: string
   models: Record<BenchModelId, string>
   rows: Record<BenchRowId, string>
 }
@@ -109,6 +126,23 @@ export const ru: LandingCopy = {
   emptyNote: 'По ARC-AGI-2, MMMU и MMMLU в этой таблице нет публикаций ни у одной сравниваемой модели.',
   footnote: 'Цифры Matrena: наши прогоны. Чужие цифры: последние публичные отчёты этих моделей. Дефис значит, что публикации нет.',
   backHome: 'На главную',
+  navSignIn: 'Войти',
+  authLoginTitle: 'Вход в Matreshka',
+  authRegisterTitle: 'Регистрация в Matreshka',
+  authEmail: 'Эл. почта',
+  authPassword: 'Пароль',
+  authSubmitLogin: 'Войти',
+  authSubmitRegister: 'Создать аккаунт',
+  authSubmitting: 'Подождите…',
+  authInvalid: 'Неверная почта или пароль.',
+  authNetwork: 'Не удалось связаться с Matreshka. Проверьте, что API запущен.',
+  authExists: 'Этот адрес уже зарегистрирован. Войдите.',
+  authSwitchToRegister: 'Нет аккаунта? Зарегистрироваться',
+  authSwitchToLogin: 'Уже есть аккаунт? Войти',
+  authHandoff: 'Открываем Matreshka…',
+  authSignedIn: 'Вы вошли. Можно открыть приложение Matreshka.',
+  authSignOut: 'Выйти',
+  authOpenDesktop: 'Открыть приложение',
   models: {
     matrena: 'Matrena',
     gemini: 'Gemini 3.8 Flash',
@@ -180,6 +214,23 @@ export const en: LandingCopy = {
   emptyNote: 'ARC-AGI-2, MMMU, and MMMLU have no published scores for any model in this table.',
   footnote: 'Matrena figures are our runs. Other figures are those models’ latest public reports. A hyphen means there is no publication.',
   backHome: 'Back to home',
+  navSignIn: 'Sign in',
+  authLoginTitle: 'Sign in to Matreshka',
+  authRegisterTitle: 'Create a Matreshka account',
+  authEmail: 'Email',
+  authPassword: 'Password',
+  authSubmitLogin: 'Sign in',
+  authSubmitRegister: 'Create account',
+  authSubmitting: 'Please wait…',
+  authInvalid: 'Invalid email or password.',
+  authNetwork: 'Could not reach Matreshka. Check that the API is running.',
+  authExists: 'That email is already registered. Sign in.',
+  authSwitchToRegister: 'No account? Register',
+  authSwitchToLogin: 'Already have an account? Sign in',
+  authHandoff: 'Opening Matreshka…',
+  authSignedIn: 'You are signed in. You can open the Matreshka app.',
+  authSignOut: 'Sign out',
+  authOpenDesktop: 'Open the app',
   models: {
     matrena: 'Matrena',
     gemini: 'Gemini 3.8 Flash',

@@ -1,8 +1,8 @@
 /** Active landing locale. */
 export type LandingLocale = 'ru' | 'en'
 
-/** Marketing document the chrome is rendering. */
-export type LandingDocument = 'home' | 'matrena'
+/** Marketing or auth document the chrome is rendering. */
+export type LandingDocument = 'home' | 'matrena' | 'login' | 'register'
 
 /**
  * @param locale - active landing locale
@@ -29,7 +29,37 @@ export function otherLocaleHref(locale: LandingLocale, document: LandingDocument
   if (document === 'matrena') {
     return locale === 'ru' ? '/en/matrena' : '/matrena'
   }
+  if (document === 'login') {
+    return loginHref(locale === 'ru' ? 'en' : 'ru')
+  }
+  if (document === 'register') {
+    return registerHref(locale === 'ru' ? 'en' : 'ru')
+  }
   return locale === 'ru' ? '/en' : '/'
+}
+
+/**
+ * @param locale - active landing locale
+ * @returns the login path for that locale
+ */
+export function loginHref(locale: LandingLocale): string {
+  return locale === 'en' ? '/en/login' : '/login'
+}
+
+/**
+ * @param locale - active landing locale
+ * @returns the register path for that locale
+ */
+export function registerHref(locale: LandingLocale): string {
+  return locale === 'en' ? '/en/register' : '/register'
+}
+
+/**
+ * @param code - one-time desktop exchange code
+ * @returns the OS protocol URL Desktop consumes
+ */
+export function desktopAuthHref(code: string): string {
+  return `matreshka://auth?code=${encodeURIComponent(code)}`
 }
 
 /**

@@ -25,6 +25,10 @@ it('exposes fire-and-forget analytics on application documents without plugin AP
   expect(api).not.toHaveProperty('backend')
   api.analytics.track('ui_send')
   expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith(DESKTOP_IPC.analyticsTrack, 'ui_send', undefined)
+  await api.auth.localLogin()
+  await api.auth.openWebsiteLogin()
+  expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith(DESKTOP_IPC.authLocalLogin)
+  expect(electron.ipcRenderer.invoke).toHaveBeenCalledWith(DESKTOP_IPC.authOpenLogin)
 })
 
 it('provides startup controls and a removable state subscription to shell documents', async () => {

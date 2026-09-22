@@ -12,7 +12,7 @@ Status: implemented
 
 Matreshka 交付三块协同部分：侧边栏「插件」标签、FastAPI 保存的连接，以及按启用来门控的 Host 技能/工具。
 
-- **标签页。** `@deepseek-ai/dsh-client-ui-plugins-matreshka` 在 `sidebar.panellist` 注册 id `plugins`、order 10（位于「新会话」之下、「工作区」之上），以及 keyed `main` 占用者 `plugins`。选中后隐藏聊天；新会话和工作区会话选择已经调用 `layout.selectPanel(null)` 并恢复聊天。文案由 locale 拥有（RU/EN/ZH）。
+- **标签页。** `@deepseek-ai/dsh-client-ui-plugins-matreshka` 在 `sidebar.panellist` 注册 id `plugins`、order 10（位于「新会话」之下、「工作区」之上），以及 keyed `main` 占用者 `plugins`。选中后隐藏聊天；新会话和工作区会话选择已经调用 `layout.selectPanel(null)` 并恢复聊天。文案由 locale 拥有（RU/EN/ZH）。同一面板还有技能与 MCP 标签，记录在 [插件页的技能与 MCP 标签](2026-09-22-plugins-skills-mcp-tabs.zh.md)。
 - **目录。** 面板恰好列出 amoCRM、Bitrix24、Tilda 和 Amadeus。卡片使用这些服务的品牌标志。没有关于独联体的副标题。Word、Excel 和 PDF 被省略。启用与连接用会话 bearer POST 到 `/v1/plugins/{id}/enable` 和 `/connect`。Amadeus（`hotels`）使用产品 API 密钥，而不是按用户连接表单。
 - **后端。** `PluginConnection` 按用户存储 `enabled` 和 JSON 密钥。`POST /v1/plugins/{id}/call` 代理允许清单内的 amoCRM REST v4、Bitrix 入站 webhook CRM 方法，以及 Tilda 导出 GET。未认证写入返回 401。缺少连接或插件已禁用返回 409。上游错误返回 502，且从不回显密钥。酒店连接返回 400。
 - **Host。** `@deepseek-ai/dsh-cis-plugins-matreshka` 从 `GET /v1/plugins` 列出技能（`complete: false`，因此禁用会在下一次会话列举中可见）。工具 `amocrm`、`bitrix24`、`tilda` 和 `hotels` 调用 `/call`。Amadeus 酒店列表和报价使用 FastAPI 上的 `AMADEUS_CLIENT_ID` / `AMADEUS_CLIENT_SECRET`。没有预订工具。

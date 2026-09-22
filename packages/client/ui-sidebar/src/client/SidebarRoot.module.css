@@ -252,21 +252,20 @@
   white-space: nowrap;
 }
 
-/* New Session: 38px bar, 12px radius (figma 133:7634 geometry, squared-off
-   corners); collapsed it renders as the rail's plain icon control. */
+/* New session sits with the other sidebar rows, not as a raised card. */
 .newSession {
   flex: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 38px;
-  padding: 8px 16px;
-  margin: 0 2px 8px;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 36px;
+  padding: 7px 8px;
+  margin: 0 0 8px;
   box-sizing: border-box;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 12px;
-  background: var(--dsw-alias-button-elevated-fill);
+  border: none;
+  border-radius: 8px;
+  background: transparent;
   color: var(--dsw-alias-label-primary);
   font-size: 14px;
   font-weight: 500;
@@ -276,7 +275,7 @@
 }
 
 .newSession:hover {
-  background: var(--dsw-alias-button-floating-hover);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
 .collapsed .newSession {
@@ -414,6 +413,12 @@
   align-items: center;
   min-width: 0;
   width: 100%;
+}
+
+/* The gear stays mounted so the settings dialog can open from the profile
+   menu. The dialog itself is a sibling of this trigger, not inside it. */
+.settingsArea [data-settings-trigger] {
+  display: none;
 }
 
 .settingsArea {

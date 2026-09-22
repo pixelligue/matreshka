@@ -19,10 +19,11 @@ import type {
 import type {} from '@deepseek-ai/dsh-client-file-upload/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import { isPlayableAudioFile } from '@deepseek-ai/dsh-client-ui-primitives'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type {
-  ComposerAttachment, ComposerFileAttachment, ComposerImageAttachment, DraftFileUpload,
+  ComposerAttachment, ComposerFileAttachment, ComposerImageAttachment, DraftFileUpload, DraftFileUploads,
 } from './contract/slots.ts'
 import type { QueueAction, QueueItemId } from './contract/queue.ts'
 import type { ComposerBlocks } from './contract/composer-blocks.ts'
@@ -280,6 +281,7 @@ export class ConversationController extends Service implements IConversation {
         finishRetirement?.(settlement)
       },
     })
+    this.seedDraftAudio(session.sessionId, attachments, uploads)
     let content: Parameters<SessionFace['prompt']>[0]
     try {
       await nextPaint()
@@ -568,6 +570,32 @@ export class ConversationController extends Service implements IConversation {
       if (ref !== undefined && 'mediaType' in ref
         && uiConversation?.seedImageUrl(sessionId, ref, attachment.previewUrl) === true) continue
       revokePreview(attachment.previewUrl)
+    }
+  }
+
+  /**
+   * Keep a local object URL for each playable audio draft so the sent message
+   * can play it before the Host read is available.
+   * @param sessionId - target Session.
+   * @param attachments - drafts included in the submission.
+   * @param uploads - upload snapshot taken before the echo was published.
+   */
+  private seedDraftAudio(
+    sessionId: SessionId,
+    attachments: readonly ComposerAttachment[],
+    uploads: DraftFileUploads,
+  ): void {
+    if (typeof URL.createObjectURL !== 'function') return
+    const uiConversation = this.ctx.get('uiConversation')
+    if (uiConversation === undefined) return
+    for (const attachment of attachments) {
+      if (attachment.kind !== 'file' || !isPlayableAudioFile(attachment.file)) continue
+      const upload = uploads[attachment.id]
+      if (upload === undefined || upload.status !== 'ready') continue
+      const url = URL.createObjectURL(attachment.file)
+      if (!uiConversation.seedAudioUrl(sessionId, upload.file, url) && typeof URL.revokeObjectURL === 'function') {
+        URL.revokeObjectURL(url)
+      }
     }
   }
 

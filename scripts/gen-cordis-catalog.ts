@@ -328,6 +328,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   SessionReferenceInput: 'session-reference.md',
   SessionAttachmentRequest: 'session.md',
   SessionAttachmentValue: 'session.md',
+  SessionAudioValue: 'session.md',
   SessionCancelRequest: 'session.md',
   SessionCancelValue: 'session.md',
   SessionControlFrame: 'session.md',
