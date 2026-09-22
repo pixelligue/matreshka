@@ -1,6 +1,12 @@
 /** Environment variable that selects the Desktop update deployment. */
 export const DESKTOP_AUTO_UPDATE_ENV: 'DSH_DESKTOP_AUTO_UPDATE_ENV'
 
+/** Environment variable for the Matreshka API origin used as the updater feed host. */
+export const MATRESHKA_API_ORIGIN_ENV: 'MATRESHKA_API_ORIGIN'
+
+/** Default Matreshka API origin, aligned with the Host apiOrigin. */
+export const DEFAULT_MATRESHKA_API_ORIGIN: string
+
 /** Supported Desktop update deployment. */
 export type DesktopAutoUpdateEnvironment = 'test' | 'production'
 

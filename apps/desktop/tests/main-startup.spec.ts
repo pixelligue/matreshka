@@ -391,7 +391,7 @@ describe('desktop main startup', () => {
     expect(electron.protocol.registerSchemesAsPrivileged).toHaveBeenCalled()
     const schemes = vi.mocked(electron.protocol.registerSchemesAsPrivileged).mock.calls[0]?.[0] as { scheme: string }[]
     expect(schemes.map(entry => entry.scheme)).toEqual(['dsh-app'])
-    expect(JSON.stringify(electron.protocol.registerSchemesAsPrivileged.mock.calls)).not.toContain('aptabase-ipc')
+    expect(JSON.stringify(vi.mocked(electron.protocol.registerSchemesAsPrivileged).mock.calls)).not.toContain('aptabase-ipc')
   })
 
   it.each(['win32', 'linux'] as const)('does not register a Plugins or Updates menu on %s', async (platform) => {
@@ -408,7 +408,7 @@ describe('desktop main startup', () => {
     expect(harness.windows[0]!.setMenu).toHaveBeenCalledWith(null)
     expect(harness.windows[0]!.removeMenu).toHaveBeenCalled()
     expect(harness.windows[0]!.setMenuBarVisibility).toHaveBeenCalledWith(false)
-    const serialized = JSON.stringify(electron.Menu.buildFromTemplate.mock.calls)
+    const serialized = JSON.stringify(vi.mocked(electron.Menu.buildFromTemplate).mock.calls)
     expect(serialized).not.toContain('Plugins')
     expect(serialized).not.toContain('Updates')
     await vi.advanceTimersByTimeAsync(10_000)
@@ -426,7 +426,7 @@ describe('desktop main startup', () => {
     await harness.navigated.promise
     expect(electron.Menu.buildFromTemplate).toHaveBeenCalledWith([{ role: 'appMenu' }])
     expect(electron.Menu.setApplicationMenu).toHaveBeenCalled()
-    const serialized = JSON.stringify(electron.Menu.buildFromTemplate.mock.calls)
+    const serialized = JSON.stringify(vi.mocked(electron.Menu.buildFromTemplate).mock.calls)
     expect(serialized).not.toContain('Plugins')
     expect(serialized).not.toContain('Updates')
     await vi.advanceTimersByTimeAsync(10_000)

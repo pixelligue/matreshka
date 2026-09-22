@@ -25,7 +25,7 @@ describe('postConsult', () => {
   })
 
   it('posts to /v1/consult with the session bearer and no OpenRouter key', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ verdict: 'ok', detail: 'go' }))
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ verdict: 'ok', detail: 'go' }))
     vi.stubGlobal('fetch', fetchMock)
     const result = await postConsult(
       { apiOrigin: 'http://127.0.0.1:8016/', sessionToken: 'sess-1' },
@@ -56,7 +56,7 @@ describe('postSelectTool', () => {
   })
 
   it('posts to /v1/tools/select with the session bearer', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ tool: 'apply_patch', confidence: 0.9 }))
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ tool: 'apply_patch', confidence: 0.9 }))
     vi.stubGlobal('fetch', fetchMock)
     const result = await postSelectTool(
       { apiOrigin: 'http://127.0.0.1:8016', sessionToken: 'sess-2' },

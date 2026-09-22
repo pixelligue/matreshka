@@ -20,7 +20,7 @@ afterEach(() => {
 function props(overrides: Partial<SignOutRowProps> = {}): SignOutRowProps {
   const unusedHook = (() => { throw new Error('unused') }) as never
   return {
-    t: key => en[key],
+    t: key => key in en ? en[key as keyof typeof en] : key,
     operations: {
       describeCredential: vi.fn(),
       storeCredential: vi.fn(),

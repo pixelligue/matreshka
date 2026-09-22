@@ -147,7 +147,7 @@ describe('DesktopAnalytics', () => {
   })
 
   it('rotates the session after an hour of idle time', () => {
-    const post = vi.fn(async () => {})
+    const post = vi.fn<AnalyticsPoster>(async () => {})
     let now = new Date('2026-09-18T00:00:00.000Z')
     const analytics = new DesktopAnalytics(
       { appKey: 'A-SH-key', host: 'http://127.0.0.1:8000' },

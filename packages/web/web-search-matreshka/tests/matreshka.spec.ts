@@ -52,7 +52,7 @@ describe('KeenableSearchProvider', () => {
   })
 
   it('sends X-Keenable-Title and no Authorization', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({
       results: [{ url: 'https://a.test', title: 'A', snippet: 's' }],
     }))
     vi.stubGlobal('fetch', fetchMock)
@@ -92,7 +92,7 @@ describe('LlmTokenApiSearchProvider', () => {
   })
 
   it('posts provider llmtokenapi with the session bearer', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({
       sources: [{ url: 'https://b.test', title: 'B', snippet: 'rag' }],
     }))
     vi.stubGlobal('fetch', fetchMock)
@@ -130,7 +130,7 @@ describe('KeenableFetchProvider', () => {
   })
 
   it('sends X-Keenable-Title and no Authorization', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ content: 'page' }))
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ content: 'page' }))
     vi.stubGlobal('fetch', fetchMock)
     const provider = new KeenableFetchProvider({
       fetchUrl: KEENABLE_PUBLIC_FETCH_URL,
@@ -150,7 +150,7 @@ describe('KeenableFetchProvider', () => {
 
 describe('plugin registration', () => {
   it('registers keenable as the usable default without a session', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ results: [] }))
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ results: [] }))
     vi.stubGlobal('fetch', fetchMock)
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { searchProvider: KEENABLE_PROVIDER_ID, fetchProvider: KEENABLE_PROVIDER_ID })

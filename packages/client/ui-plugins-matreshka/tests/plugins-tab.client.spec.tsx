@@ -5,6 +5,7 @@ import { act, cleanup, fireEvent, within } from '@testing-library/react'
 import { SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { en as commonEn } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
+import { ru as commonRu } from '@deepseek-ai/dsh-client-locale/src/locales/ru.ts'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type { ILayout, MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -46,7 +47,7 @@ async function bench(collapsed = false) {
       ctx.provide('layout', layout)
       ctx.provide('uiWorkspace', { startSession } as never)
       ctx.provide('locale', locale)
-      ctx.effect(() => locale.register('common', { zh: commonZh, en: commonEn }), 'plugins test: common locale')
+      ctx.effect(() => locale.register('common', { zh: commonZh, en: commonEn, ru: commonRu }), 'plugins test: common locale')
       ctx.slots.installLocale(locale)
       ctx.slots.inject('main', () => ctx.slots.register({ name: 'main', key: 'conversation' }, () => (
         <p>Conversation content</p>

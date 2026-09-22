@@ -31,7 +31,7 @@ describe('listEnabledPlugins', () => {
   })
 
   it('returns only enabled plugin ids and never documents', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse([
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse([
       { id: 'amocrm', enabled: true, connected: true },
       { id: 'bitrix24', enabled: false, connected: true },
       { id: 'tilda', enabled: true, connected: false },

@@ -14,7 +14,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe('postGenerateImages', () => {
   it('posts prompt and n with the session bearer', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({
       model: 'gpt-image-2',
       images: [{ b64: 'aaa', mediaType: 'image/png' }],
     }))
@@ -33,7 +33,7 @@ describe('postGenerateImages', () => {
   })
 
   it('sends references for edits', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({
       model: 'gpt-image-2',
       images: [{ b64: 'bbb', mediaType: 'image/png' }],
     }))

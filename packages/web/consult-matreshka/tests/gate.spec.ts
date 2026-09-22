@@ -43,7 +43,7 @@ describe('userAuthoredText', () => {
 
 describe('consultGatePreStep', () => {
   it('always calls next and skips Flash when Jev chooses skip', async () => {
-    const fetchMock = vi.fn(async () => jsonResponse({ tool: 'skip', confidence: 0.8 }))
+    const fetchMock = vi.fn<typeof fetch>(async () => jsonResponse({ tool: 'skip', confidence: 0.8 }))
     vi.stubGlobal('fetch', fetchMock)
     const next = vi.fn(async () => ({ kind: 'enter' as const, messages: [user('hi')] }))
     const decision = await consultGatePreStep(
@@ -59,7 +59,7 @@ describe('consultGatePreStep', () => {
   })
 
   it('calls consult and appends an advisor notice when Jev chooses consult', async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo) => {
+    const fetchMock = vi.fn<typeof fetch>(async (input) => {
       if (String(input).includes('/tools/select')) {
         return jsonResponse({ tool: 'consult', confidence: 0.9 })
       }

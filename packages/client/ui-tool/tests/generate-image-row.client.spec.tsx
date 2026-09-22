@@ -92,11 +92,12 @@ describe('GenerateImageRow', () => {
 
   it('opens a preview and shows copy, save, and the saved folder', async () => {
     const block = settled()
-    block.content.splice(1, 0, {
+    const content = [...block.content]
+    content.splice(1, 0, {
       type: 'text',
       text: `image-file:${sampleImage.attachmentId}\tC:\\project\\matreshka\\apps\\desktop\\.desktop-build\\development\\home\\attachments\\v1\\objects\\fe\\file`,
     })
-    const view = render(<GenerateImageRow {...rowProps(block)} />)
+    const view = render(<GenerateImageRow {...rowProps({ ...block, content })} />)
     const preview = await waitFor(() => view.getByTestId('image-preview'))
     expect(view.getByText('保存在 C:\\project\\matreshka\\apps\\desktop\\.desktop-build\\development\\home\\attachments\\v1\\objects\\fe')).toBeTruthy()
     fireEvent.contextMenu(preview)

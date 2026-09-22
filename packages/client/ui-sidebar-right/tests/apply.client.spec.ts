@@ -24,7 +24,7 @@ import { ExpandButton } from '../src/client/shell/ExpandButton.tsx'
 import { GuideBody } from '../src/client/tabs/guide/GuideBody.tsx'
 import { GuideTitle } from '../src/client/tabs/guide/GuideTitle.tsx'
 import { GUIDE_ID } from '../src/client/tabs/guide/definition.ts'
-import { en, zh } from '../src/client/locales.ts'
+import { en, ru, zh } from '../src/client/locales.ts'
 
 const SESSION = 's-test' as SessionId
 
